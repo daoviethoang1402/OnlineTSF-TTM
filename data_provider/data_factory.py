@@ -58,7 +58,7 @@ def get_dataset(args, flag, device='cpu', wrap_class=None, borders=None, take_po
         data_set.data_x = torch.tensor(data_set.data_x, dtype=torch.float32, device=device)
         data_set.data_y = torch.tensor(data_set.data_y, dtype=torch.float32, device=device)
         from settings import need_x_mark, need_x_y_mark
-        if args.model in need_x_mark or args.model in need_x_y_mark or args.use_time or \
+        if args.model in need_x_mark or args.model in need_x_y_mark or \
                 hasattr(args, 'online_method') and args.online_method == 'OneNet':
             data_set.data_stamp = torch.tensor(data_set.data_stamp, dtype=torch.float32, device=device)
 

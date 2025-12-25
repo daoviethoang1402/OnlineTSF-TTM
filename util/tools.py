@@ -101,7 +101,7 @@ class EarlyStopping:
         self.counter = 0
         self.best_score = None
         self.early_stop = False
-        self.val_loss_min = np.Inf
+        self.val_loss_min = float('inf')
         self.delta = delta
         self.best_checkpoint = None
 

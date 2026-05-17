@@ -1,0 +1,305 @@
+================================================================================
+                    PROCEED + PatchTST ARCHITECTURE
+================================================================================
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          OVERALL PIPELINE                                    │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+                              Time Series Data
+                                    │
+                                    ▼
+            ┌───────────────────────────────────────────┐
+            │   Data Split (Train:Val:Test = 20:5:75)   │
+            └───────────────────┬───────────────────────┘
+                    ┌───────────┼───────────┐
+                    ▼           ▼           ▼
+            ┌─────────────┐ ┌───────┐ ┌──────────┐
+            │ PRETRAIN    │ │ VAL   │ │ TEST     │
+            │ (Batch)     │ │(Seq)  │ │ (Seq)    │
+            └──────┬──────┘ └───┬───┘ └────┬─────┘
+                   │            │          │
+                   │            ▼          ▼
+                   │      ┌──────────────────────┐
+                   │      │  PROCEED ADAPTERS    │
+                   │      │  + Model Checkpoint  │
+                   │      └──────────────────────┘
+                   │            │
+                   ▼            ▼
+            ┌─────────────────────────┐
+            │  Exp_Proceed.online()   │
+            │  Sequential Processing  │
+            │  MSE, MAE Metrics       │
+            └─────────────────────────┘
+
+
+================================================================================
+                        PROCEED WRAPPER ARCHITECTURE
+================================================================================
+
+        ┌────────────────────────────────────────────────────────┐
+        │                  Input: x_t                            │
+        │                  Shape: (B, seq_len, enc_in)           │
+        └────────────────────┬─────────────────────────────────┘
+                             │
+              ┌──────────────┴──────────────┐
+              │                             │
+              ▼                             ▼
+        ┌──────────────┐           ┌──────────────┐
+        │    MLP1      │           │    MLP2      │
+        │ seq→concept  │           │recent→concept│
+        └──────┬───────┘           └──────┬───────┘
+               │                          │
+               │ concept_t                │ concept_recent
+               │                          │
+               └──────────────┬───────────┘
+                              │
+                              ▼
+                      ┌───────────────┐
+                      │ drift = Δ     │
+                      │ concept       │
+                      └───────┬───────┘
+                              │
+                    ┌─────────▼─────────┐
+                    │ [Optional EMA]    │
+                    └─────────┬─────────┘
+                              │
+                              ▼
+                  ┌──────────────────────┐
+                  │ Adaptation Generator │
+                  │ (Bottleneck Network) │
+                  │ drift → coefficients │
+                  └──────────┬───────────┘
+                             │
+                 ┌───────────┴───────────┐
+                 │                       │
+                 ▼                       ▼
+    ┌─────────────────────┐  ┌─────────────────────┐
+    │ scale (adaptation)  │  │shift (adaptation)   │
+    └─────────┬───────────┘  └──────────┬──────────┘
+              │                         │
+              └───────────┬─────────────┘
+                          │
+                          ▼
+        ┌─────────────────────────────────┐
+        │  Apply to ALL Frozen Backbone   │
+        │  Layers (via Down-Up Adapters)  │
+        └────────────────┬────────────────┘
+                         │
+                         ▼
+             ┌─────────────────────────┐
+             │  Output: adapted x'     │
+             │  Shape: (B, pred_len,   │
+             │         enc_in)         │
+             └─────────────────────────┘
+
+
+================================================================================
+                        PATCHST BACKBONE ARCHITECTURE
+================================================================================
+
+Input: x
+Shape: (B, seq_len, enc_in)
+       │
+       ▼
+┌──────────────────────────────┐
+│ Permute to (B, enc_in, seq)  │
+└──────────────┬───────────────┘
+               │
+       ┌───────▼────────┐
+       │ [OPTIONAL] Dec │
+       │ ompose trend   │
+       │ and residual   │
+       └───────┬────────┘
+               │
+    ┌──────────▼──────────┐
+    │ PatchTST_backbone   │
+    │ ├─ Patching Layer   │
+    │ │  (seq→patches)    │
+    │ │  patch_len=16,    │
+    │ │  stride=8         │
+    │ │                   │
+    │ ├─ Embedding        │
+    │ │  patch + pos enc  │
+    │ │                   │
+    │ ├─ Transformer      │
+    │ │  e_layers=3       │
+    │ │  d_model=128      │
+    │ │  n_heads=16       │
+    │ │  d_ff=256         │
+    │ │                   │
+    │ └─ Output Head      │
+    │    patches→tokens   │
+    │    tokens→forecast  │
+    └──────────┬──────────┘
+               │
+       ┌───────▼────────┐
+       │ [IF DECOMPOSED]│
+       │ trend + res    │
+       │ combine        │
+       └───────┬────────┘
+               │
+       ┌───────▼────────┐
+       │ Permute back   │
+       │ to (B,pred_len,│
+       │     enc_in)    │
+       └───────┬────────┘
+               │
+               ▼
+        Output: y_hat
+        Shape: (B, pred_len, enc_in)
+
+
+================================================================================
+                        ONLINE LEARNING LOOP
+================================================================================
+
+for each batch in test_loader:
+    (recent_batch, current_batch) = batch
+    ↓
+    
+┌─────────────────────────────────────────────────────────────────────┐
+│ RECENT BATCH UPDATE (Learn patterns from history)                   │
+│                                                                     │
+│  model.train()                                                      │
+│  freeze_adapter(True)    # Fix concept drift detection             │
+│  freeze_bias(False)      # Update backbone bias                    │
+│  _update_online(recent_batch)                                      │
+│    └─ Forward pass: recent_batch → concept_drift                   │
+│    └─ Update: backbone weights & bias                              │
+│  freeze_bias(True)       # Fix bias after update                   │
+│  recent_batch ← accumulate for next iteration                      │
+└─────────────────────────────────────────────────────────────────────┘
+    ↓
+    
+┌─────────────────────────────────────────────────────────────────────┐
+│ CURRENT BATCH PREDICTION (Detect drift & evaluate)                 │
+│                                                                     │
+│  model.eval()                                                       │
+│  with no_grad():                                                    │
+│    outputs = forward(current_batch)                                │
+│    ├─ Generate new concepts from current_batch                     │
+│    ├─ Compute drift (concept_current - concept_recent)             │
+│    ├─ Generate adaptations via Adaptation Generator                │
+│    ├─ Apply Down-Up adapters to backbone                           │
+│    └─ Return predictions                                           │
+│                                                                     │
+│  metrics = evaluate(outputs, labels)                               │
+│  MSE ← record for averaging                                        │
+│  MAE ← record for averaging                                        │
+└─────────────────────────────────────────────────────────────────────┘
+    ↓
+    [REPEAT for next batch]
+    ↓
+Result: MSE, MAE aggregated over all test samples
+
+
+================================================================================
+                        DOWN-UP ADAPTER APPLICATION
+================================================================================
+
+Applied to each Linear, Conv1d, LayerNorm layer:
+
+Original layer computation:
+    y = W @ x + b
+
+With Down-Up adaptation:
+    y' = (W * scale_out) @ (x * scale_in) + (b + bias_shift)
+    
+Where:
+    scale_in = 1 + adaptation[..., 0:in_features]
+    scale_out = 1 + adaptation[..., in_features:2*in_features]
+    bias_shift = adaptation[..., 2*in_features:]
+    
+Result:
+    - Efficient (minimal overhead)
+    - Learnable per-layer (bottleneck maps drift → scales)
+    - Bounded (clipping ensures stability)
+
+
+================================================================================
+                        FREEZING STRATEGY TIMELINE
+================================================================================
+
+PRETRAINING PHASE:
+    ┌─────────────────────────────────┐
+    │ Backbone: TRAIN                 │
+    │ Adapters: TRAIN                 │
+    │ Objective: Learn features       │
+    └─────────────────────────────────┘
+
+VALIDATION ADAPTATION:
+    For each (recent, current) pair:
+    ┌─────────────────────────────────┐
+    │ Recent Batch:                   │
+    │   Backbone: FROZEN (weights)    │
+    │   Bias: TRAIN (detect patterns) │
+    │   Adapters: FROZEN              │
+    └─────────────────────────────────┘
+    ↓
+    ┌─────────────────────────────────┐
+    │ Current Batch:                  │
+    │   Backbone: FROZEN (weights)    │
+    │   Bias: FROZEN                  │
+    │   Adapters: TRAIN (drift detect)│
+    └─────────────────────────────────┘
+
+ONLINE TESTING:
+    (Same as validation adaptation)
+    Sequential prediction + adaptation
+
+
+================================================================================
+                        KEY EQUATIONS
+================================================================================
+
+1. CONCEPT EXTRACTION
+   concept_t = mean(MLP1(x_t))
+   concept_recent = mean(MLP2(recent_batch))
+
+2. DRIFT COMPUTATION
+   drift = concept_t - concept_recent
+   [Optional: drift ← α * drift_prev + (1-α) * drift  if ema > 0]
+
+3. ADAPTATION GENERATION
+   adaptation = clip(Generator(drift), max_norm=1.0)
+   
+4. DOWN-UP SCALING
+   y_adapted = (W * (1 + scale_out)) @ (x * (1 + scale_in)) 
+               + (b + shift)
+
+5. LOSS (Online)
+   L = MSE(y_pred, y_true) + [optional regularization]
+
+
+================================================================================
+                        FILE DEPENDENCIES
+================================================================================
+
+run.py
+├─ args parsing & setup
+├─ exp/__init__.py → selects Exp_Proceed
+│
+├─ Exp_Proceed (exp/exp_proceed.py)
+│  ├─ Inherits from Exp_Online
+│  ├─ _build_model() → wraps with Proceed
+│  ├─ update_valid() → special freeze/unfreeze
+│  └─ _update_online() → tracks recent_batch
+│
+├─ Exp_Online (exp/exp_online.py)
+│  ├─ Inherits from Exp_Main
+│  ├─ _get_data() → uses Dataset_Recent wrapper
+│  ├─ online() → main sequential loop
+│  └─ _update_online() → batch update step
+│
+├─ Proceed wrapper (adapter/proceed.py)
+│  ├─ generate_adaptation() → drift→params
+│  ├─ freeze_adapter() → toggle gradient
+│  ├─ add_adapters_() → insert to backbone
+│  └─ uses AdaptGenerator (module/generator.py)
+│
+└─ PatchTST model (models/PatchTST.py)
+   ├─ Model class (main architecture)
+   └─ PatchTST_backbone (layers/PatchTST_backbone.py)
+
+================================================================================

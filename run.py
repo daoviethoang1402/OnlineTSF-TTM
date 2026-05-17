@@ -436,8 +436,8 @@ if __name__ == '__main__':
                 print('Learning rate of model_optim is', exp.model_optim.param_groups[0]['lr'])
             else:
                 print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
-                # _, train_data, train_loader, vali_data, vali_loader = exp.train(setting, train_data, train_loader,
-                #                                                                 vali_data, vali_loader)
+                _, train_data, train_loader, vali_data, vali_loader = exp.train(setting, train_data, train_loader,
+                                                                                vali_data, vali_loader)
                 torch.cuda.empty_cache()
 
         if args.online_learning_rate is not None and not isinstance(exp, Exp_SOLID):

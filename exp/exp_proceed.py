@@ -18,7 +18,7 @@ class Exp_Proceed(Exp_Online):
         self.mean_dim = args.seq_len
 
     def online(self, online_data=None, target_variate=None, phase='test', show_progress=False):
-        if phase == 'val' and self.args.val_online_lr:
+        if phase == 'val' and self.args.val_online_lr and self.args.online_learning_rate is not None:
             lr = self.model_optim.param_groups[0]['lr']
             for j in range(len(self.model_optim.param_groups)):
                 self.model_optim.param_groups[j]['lr'] = self.args.online_learning_rate

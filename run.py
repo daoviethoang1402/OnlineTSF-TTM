@@ -39,6 +39,10 @@ parser.add_argument('--wo_valid', action='store_true', default=False, help='only
 parser.add_argument('--only_test', action='store_true', default=False)
 parser.add_argument('--do_valid', action='store_true', default=False)
 parser.add_argument('--model', type=str, required=True, default='PatchTST')
+parser.add_argument('--pretrained_model_name', type=str,
+                    default='ibm-granite/granite-timeseries-ttm-r1',
+                    help='HuggingFace model id or local path for TinyTimeMixer pretrained weights. '
+                         'Set to empty string to train from scratch.')
 parser.add_argument('--override_hyper', action='store_true', default=True, help='Override hyperparams by setting.py')
 parser.add_argument('--compile', action='store_true', default=False, help='Compile the model by Pytorch 2.0')
 parser.add_argument('--reduce_bs', type=str_to_bool, default=False,

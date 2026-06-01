@@ -28,6 +28,10 @@ class Proceed(nn.Module):
         if args.freeze:
             backbone.requires_grad_(False)
         self.backbone = add_adapters_(backbone, args)
+        # Let the backbone re-enforce its own internal freeze policy after adapters
+        # are injected (e.g. TTM always keeps its pretrained backbone frozen).
+        if hasattr(self.backbone, 'post_proceed_init'):
+            self.backbone.post_proceed_init()
         self.more_bias = not args.freeze
         self.generator = AdaptGenerator(backbone, args.concept_dim,
                                         activation=nn.Sigmoid if args.act == 'sigmoid' else nn.Identity,

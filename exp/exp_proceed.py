@@ -43,6 +43,12 @@ class Exp_Proceed(Exp_Online):
         scaler = torch.cuda.amp.GradScaler() if self.args.use_amp else None
         self.model.train()
         predictions = []
+        # Freeze TTM decoder+head (and any model with a freeze_head hook) before the
+        # val/online loop so they are excluded from the optimizer and never updated
+        # during adaptation phases, regardless of args.freeze.
+        if hasattr(self._model.backbone, 'freeze_head'):
+            self._model.backbone.freeze_head()
+
         if not self.args.joint_update_valid:
             for i, (recent_batch, current_batch) in enumerate(tqdm(valid_loader, mininterval=10)):
                 self._model.freeze_bias(False)

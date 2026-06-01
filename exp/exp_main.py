@@ -53,6 +53,7 @@ class Exp_Main(Exp_Basic):
                                                        process_method=self.args.normalization)
 
         if hasattr(self.args, 'load_path'):
+        # if hasattr(self.args, 'load_path') and os.path.exists(self.args.load_path):
             if not self.args.freeze:
                 self.model_optim = self._select_optimizer(model=model.to(self.device))  # Otherwise, no need to reload its optimizer
             print('Load checkpoints from', self.args.load_path)

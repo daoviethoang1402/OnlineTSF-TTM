@@ -39,10 +39,6 @@ parser.add_argument('--wo_valid', action='store_true', default=False, help='only
 parser.add_argument('--only_test', action='store_true', default=False)
 parser.add_argument('--do_valid', action='store_true', default=False)
 parser.add_argument('--model', type=str, required=True, default='PatchTST')
-parser.add_argument('--pretrained_model_name', type=str,
-                    default='ibm-granite/granite-timeseries-ttm-r1',
-                    help='HuggingFace model id or local path for TinyTimeMixer pretrained weights. '
-                         'Set to empty string to train from scratch.')
 parser.add_argument('--override_hyper', action='store_true', default=True, help='Override hyperparams by setting.py')
 parser.add_argument('--compile', action='store_true', default=False, help='Compile the model by Pytorch 2.0')
 parser.add_argument('--reduce_bs', type=str_to_bool, default=False,
@@ -50,6 +46,22 @@ parser.add_argument('--reduce_bs', type=str_to_bool, default=False,
 parser.add_argument('--normalization', type=str, default=None)
 parser.add_argument('--checkpoints', type=str, default='./checkpoints/', help='location of model checkpoints')
 parser.add_argument('--tag', type=str, default='')
+
+# TinyTimeMixer
+parser.add_argument('--pretrained_model_name', type=str,
+                    default='ibm-granite/granite-timeseries-ttm-r1',
+                    help='HuggingFace model id or local path for TinyTimeMixer pretrained weights. '
+                         'Set to empty string to train from scratch.')
+parser.add_argument('--backbone_mode', type=str, default='common_channel',
+                    help="""Determines how to process the channels. Allowed values: "common_channel", "mix_channel". In
+                    "common_channel" mode, we follow Channel-independent modelling with no explicit channel-mixing. Channel
+                    mixing happens in an implicit manner via shared weights across channels. (preferred first approach) In
+                    "mix_channel" mode, we follow explicit channel-mixing in addition to patch and feature mixer. (preferred
+                    approach when channel correlations are very important to model)""")
+parser.add_argument('--decoder_mode', type=str, default='common_channel',
+                    help="""Decoder channel mode. 
+                    Use `"common_channel" for channel-independent modelling and 
+                    `"mix_channel"` for channel-mixing modelling""")
 
 # online
 parser.add_argument('--online_method', type=str, default=None)

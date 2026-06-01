@@ -26,6 +26,7 @@ data_settings = {
     'Exchange': {'data': 'exchange_rate.csv', 'T':'OT', 'M':[8,8], 'prefetch_batch_size': 128},
     'exchange_rate': {'data': 'exchange_rate.csv', 'T':'OT', 'M':[8,8], 'prefetch_batch_size': 128},
     'Illness': {'data': 'illness.csv', 'T':'OT', 'M':[7,7], 'prefetch_batch_size': 128},
+    # 'Jiaolong_DSMS': {'data': 'Jiaolong_DSMS.csv', 'T': 'Label', 'M': [25, 25], 'prefetch_batch_size': 128}
 }
 
 def get_borders(args):
@@ -143,6 +144,11 @@ def get_hyperparams(data, model, args, reduce_bs=True):
 
 pretrain_lr_online_dict = {
     'TinyTimeMixer': {
+        'ETTh1': 0.0001, 'ETTh2': 0.0001, 'ETTm1': 0.0001, 'ETTm2': 0.0001,
+        'Weather': 0.0001, 'ECL': 0.0001, 'Traffic': 0.0001,
+        'Exchange': 0.0001, 'Illness': 0.0001,
+    },
+    'TinyTimeMixer_RevIN': {
         'ETTh1': 0.0001, 'ETTh2': 0.0001, 'ETTm1': 0.0001, 'ETTm2': 0.0001,
         'Weather': 0.0001, 'ECL': 0.0001, 'Traffic': 0.0001,
         'Exchange': 0.0001, 'Illness': 0.0001,

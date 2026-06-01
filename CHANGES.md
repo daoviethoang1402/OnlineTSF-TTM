@@ -170,7 +170,7 @@ python run.py --model TinyTimeMixer --dataset ETTh1 \
   --seq_len 512 --pred_len 96 \
   --online_method Proceed \
   --concept_dim 200 --bottleneck_dim 32 \
-  --online_learning_rate 0.0001 --pretrain
+  --online_learning_rate 0.0001 --only_test # only validation & online testing, for existing checkpoint
 ```
 
 ### Approach 2 — Adapter-only (frozen TTM)

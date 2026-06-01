@@ -35,11 +35,11 @@ def _build_config(configs):
         # Backbone uses common_channel to match IBM pretrained weights.
         # Channel mixing is placed in the decoder (decoder_mode='mix_channel'), which
         # is fine-tuned from scratch and not subject to the backbone-frozen constraint.
-        mode='common_channel',
+        mode=configs.backbone_mode,
         use_decoder=True,
         decoder_num_layers=2,
         decoder_d_model=128,
-        decoder_mode='mix_channel',
+        decoder_mode=configs.decoder_mode,
         post_init=False,
     )
 
@@ -68,7 +68,6 @@ class Model(nn.Module):
             self.tinytimemixer = TinyTimeMixerForPrediction.from_pretrained(
                 pretrained_model_name,
                 config=cfg,
-                local_files_only=True,
                 ignore_mismatched_sizes=True,
             )
         else:

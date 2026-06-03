@@ -62,6 +62,8 @@ parser.add_argument('--decoder_mode', type=str, default='common_channel',
                     help="""Decoder channel mode. 
                     Use `"common_channel" for channel-independent modelling and 
                     `"mix_channel"` for channel-mixing modelling""")
+parser.add_argument('--run_offline', action='store_true', default=False,
+                    help='Run offline, if there is no internet and the HuggingFace model is available offline.')
 
 # online
 parser.add_argument('--online_method', type=str, default=None)

@@ -69,6 +69,7 @@ class Model(nn.Module):
                 pretrained_model_name,
                 config=cfg,
                 ignore_mismatched_sizes=True,
+                local_files_only=configs.run_offline,
             )
         else:
             self.tinytimemixer = TinyTimeMixerForPrediction(cfg)

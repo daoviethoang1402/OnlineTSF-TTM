@@ -26,7 +26,7 @@ data_settings = {
     'Exchange': {'data': 'exchange_rate.csv', 'T':'OT', 'M':[8,8], 'prefetch_batch_size': 128},
     'exchange_rate': {'data': 'exchange_rate.csv', 'T':'OT', 'M':[8,8], 'prefetch_batch_size': 128},
     'Illness': {'data': 'illness.csv', 'T':'OT', 'M':[7,7], 'prefetch_batch_size': 128},
-    # 'Jiaolong_DSMS': {'data': 'Jiaolong_DSMS.csv', 'T': 'Label', 'M': [25, 25], 'prefetch_batch_size': 128}
+    'Jiaolong_DSMS': {'data': 'Jiaolong_DSMS.csv', 'T': 'Label', 'M': [24, 24], 'prefetch_batch_size': 128}
 }
 
 def get_borders(args):

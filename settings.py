@@ -31,16 +31,18 @@ data_settings = {
 
 def get_borders(args):
     if args.border_type == 'online':
-        if args.data.startswith('ETTh'):
-            border1s = [0, 4*30*24 - args.seq_len, 5*30*24 - args.seq_len]
-            border2s = [4*30*24, 5*30*24, 20*30*24]
-            args.borders = (border1s, border2s)
-        elif args.data.startswith('ETTm'):
-            border1s = [0, 4*30*24*4 - args.seq_len, 5*30*24*4 - args.seq_len]
-            border2s = [4*30*24*4, 5*30*24*4, 20*30*24*4]
-            args.borders = (border1s, border2s)
-        else:
-            args.ratio = (0.2, 0.75)
+        # All datasets follow same split
+        # if args.data.startswith('ETTh'):
+        #     border1s = [0, 4*30*24 - args.seq_len, 5*30*24 - args.seq_len]
+        #     border2s = [4*30*24, 5*30*24, 20*30*24]
+        #     args.borders = (border1s, border2s)
+        # elif args.data.startswith('ETTm'):
+        #     border1s = [0, 4*30*24*4 - args.seq_len, 5*30*24*4 - args.seq_len]
+        #     border2s = [4*30*24*4, 5*30*24*4, 20*30*24*4]
+        #     args.borders = (border1s, border2s)
+        # else:
+        #     # args.ratio = (0.2, 0.75)
+        args.ratio = (0.4, 0.55)
 
 hyperparams = {
     'TinyTimeMixer': {},
@@ -146,12 +148,12 @@ pretrain_lr_online_dict = {
     'TinyTimeMixer': {
         'ETTh1': 0.0001, 'ETTh2': 0.0001, 'ETTm1': 0.0001, 'ETTm2': 0.0001,
         'Weather': 0.0001, 'ECL': 0.0001, 'Traffic': 0.0001,
-        'Exchange': 0.0001, 'Illness': 0.0001,
+        'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001,
     },
     'TinyTimeMixer_RevIN': {
         'ETTh1': 0.0001, 'ETTh2': 0.0001, 'ETTm1': 0.0001, 'ETTm2': 0.0001,
         'Weather': 0.0001, 'ECL': 0.0001, 'Traffic': 0.0001,
-        'Exchange': 0.0001, 'Illness': 0.0001,
+        'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001,
     },
      'TCN': {'ECL': 0.003, 'ETTh2': 0.003, 'ETTm1': 0.001, 'Weather': 0.001, 'Traffic': 0.003},
      'TCN_RevIN': {'ECL': 0.003, 'ETTh2': 0.001, 'ETTm1': 0.0001, 'Weather': 0.001, 'Traffic': 0.003},

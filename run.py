@@ -96,6 +96,8 @@ parser.add_argument('--learning_rate_bias', type=float, default=0.001, help='opt
 
 # data loader
 parser.add_argument('--border_type', type=str, default='online', help='set any other value for traditional data splits')
+parser.add_argument('--train_ratio', type=float, default=0.4, help='train ratio, default: 0.4')
+parser.add_argument('--test_ratio', type=float, default=0.55, help='test ratio, default: 0.55')
 parser.add_argument('--root_path', type=str, default='./dataset/', help='root path of the data file')
 parser.add_argument('--dataset', type=str, default='ETTh1', help='data file')
 parser.add_argument('--features', type=str, default='M',

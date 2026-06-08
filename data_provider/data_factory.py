@@ -2,16 +2,29 @@
 from data_provider.data_loader import *
 from torch.utils.data import DataLoader, DistributedSampler
 
+# data_dict = {
+#     'ETTh1': Dataset_ETT_hour,
+#     'ETTh2': Dataset_ETT_hour,
+#     'ETTm1': Dataset_ETT_minute,
+#     'ETTm2': Dataset_ETT_minute,
+#     'custom': Dataset_Custom,
+#     'ETTh1_CI': Dataset_ETT_hour_CI,
+#     'ETTh2_CI': Dataset_ETT_hour_CI,
+#     'ETTm1_CI': Dataset_ETT_minute_CI,
+#     'ETTm2_CI': Dataset_ETT_minute_CI,
+#     'custom_CI': Dataset_Custom_CI,
+# }
+
 data_dict = {
-    'ETTh1': Dataset_ETT_hour,
-    'ETTh2': Dataset_ETT_hour,
-    'ETTm1': Dataset_ETT_minute,
-    'ETTm2': Dataset_ETT_minute,
+    'ETTh1': Dataset_Custom,
+    'ETTh2': Dataset_Custom,
+    'ETTm1': Dataset_Custom,
+    'ETTm2': Dataset_Custom,
     'custom': Dataset_Custom,
-    'ETTh1_CI': Dataset_ETT_hour_CI,
-    'ETTh2_CI': Dataset_ETT_hour_CI,
-    'ETTm1_CI': Dataset_ETT_minute_CI,
-    'ETTm2_CI': Dataset_ETT_minute_CI,
+    'ETTh1_CI': Dataset_Custom_CI,
+    'ETTh2_CI': Dataset_Custom_CI,
+    'ETTm1_CI': Dataset_Custom_CI,
+    'ETTm2_CI': Dataset_Custom_CI,
     'custom_CI': Dataset_Custom_CI,
 }
 

@@ -1,48 +1,24 @@
 __all__ = ['Model']
 
+import torch
 import torch.nn as nn
 
 from tsfm_public.models.tinytimemixer import TinyTimeMixerConfig, TinyTimeMixerForPrediction
 
-
-def _build_config(configs):
-    # Only task dimensions come from args. All architecture constants are fixed to
-    # match ibm-granite/granite-timeseries-ttm-r1 so pretrained weights load cleanly.
-    # Generic transformer flags in args (d_model=512, patch_len=16, stride=8, …) must
-    # NOT be read here — they would cause shape mismatches across the entire backbone.
-    return TinyTimeMixerConfig(
-        # Task-specific (vary per experiment)
-        context_length=configs.seq_len,
-        num_input_channels=configs.enc_in,
-        prediction_length=configs.pred_len,
-        # IBM granite-timeseries-ttm-r1 architecture constants (do not read from args)
-        patch_length=64,
-        patch_stride=64,
-        d_model=192,
-        num_layers=2,
-        adaptive_patching_levels=3,
-        expansion_factor=2,
-        dropout=0.2,
-        gated_attn=True,
-        norm_mlp='LayerNorm',
-        self_attn=False,
-        self_attn_heads=1,
-        use_positional_encoding=False,
-        positional_encoding_type='sincos',
-        scaling='std',
-        loss='mse',
-        head_dropout=0.2,
-        # Backbone uses common_channel to match IBM pretrained weights.
-        # Channel mixing is placed in the decoder (decoder_mode='mix_channel'), which
-        # is fine-tuned from scratch and not subject to the backbone-frozen constraint.
-        mode=configs.backbone_mode,
-        use_decoder=True,
-        decoder_num_layers=2,
-        decoder_d_model=128,
-        decoder_mode=configs.decoder_mode,
-        post_init=False,
-    )
-
+# Maps the framework's --freq strings to TTM-r2 integer tokens.
+# TTM-r2 frequency_token_vocab_size=8, so valid range is [0, 7].
+# 't' (Informer convention for ETTm 15-min data) maps to token 5 (15min).
+# Frequencies outside the vocab (daily, weekly) fall back to 0 (oov).
+_FREQ_MAP = {
+    't': 5,      # ~15-min (ETTm convention in this codebase)
+    'min': 1,
+    '2min': 2,
+    '5min': 3,
+    '10min': 4,
+    '15min': 5,
+    '30min': 6,
+    'h': 7, 'H': 7,
+}
 
 class Model(nn.Module):
     """
@@ -61,18 +37,30 @@ class Model(nn.Module):
 
     def __init__(self, configs):
         super().__init__()
-        cfg = _build_config(configs)
-        pretrained_model_name = getattr(configs, 'pretrained_model_name',
-                                        'ibm-granite/granite-timeseries-ttm-r1')
-        if pretrained_model_name:
-            self.tinytimemixer = TinyTimeMixerForPrediction.from_pretrained(
+
+        pretrained_model_name = getattr(configs, 'pretrained_model_name', 'ibm-research/ttm-research-r2')
+        cfg = TinyTimeMixerConfig.from_pretrained(
+            pretrained_model_name,
+            revision = configs.revision)
+        cfg.context_length = configs.seq_len
+        cfg.prediction_length = configs.pred_len
+        cfg.num_input_channels = configs.enc_in
+        cfg.decoder_mode = configs.decoder_mode
+        cfg.mode = configs.backbone_mode
+        self.tinytimemixer = TinyTimeMixerForPrediction.from_pretrained(
                 pretrained_model_name,
                 config=cfg,
                 ignore_mismatched_sizes=True,
                 local_files_only=configs.run_offline,
+                revision = configs.revision
             )
-        else:
-            self.tinytimemixer = TinyTimeMixerForPrediction(cfg)
+
+        # Frequency token for resolution_prefix_tuning (TTM-r2 feature).
+        # Stored as a non-persistent buffer so it moves with the model to GPU.
+        freq_int = _FREQ_MAP.get(getattr(configs, 'freq', 'h'), 0)
+        self.register_buffer('_freq_token',
+                             torch.tensor(freq_int, dtype=torch.long),
+                             persistent=False)
 
         # Backbone always frozen per TTM paper.
         self.tinytimemixer.backbone.requires_grad_(False)
@@ -137,7 +125,9 @@ class Model(nn.Module):
     # ------------------------------------------------------------------
 
     def forward(self, x, x_mark=None, return_emb=False):
-        outputs = self.tinytimemixer(x, return_loss=False, return_dict=True)
+        freq_token = self._freq_token.expand(x.shape[0])
+        outputs = self.tinytimemixer(x, return_loss=False, return_dict=True,
+                                     freq_token=freq_token)
         if hasattr(outputs, 'prediction_outputs'):
             return outputs.prediction_outputs
         if isinstance(outputs, tuple) and len(outputs) > 0:

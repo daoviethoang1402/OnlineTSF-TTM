@@ -49,7 +49,7 @@ parser.add_argument('--tag', type=str, default='')
 
 # TinyTimeMixer
 parser.add_argument('--pretrained_model_name', type=str,
-                    default='ibm-granite/granite-timeseries-ttm-r1',
+                    default='ibm-research/ttm-research-r2',
                     help='HuggingFace model id or local path for TinyTimeMixer pretrained weights. '
                          'Set to empty string to train from scratch.')
 parser.add_argument('--backbone_mode', type=str, default='common_channel',
@@ -208,6 +208,20 @@ if args.model.endswith('_Ensemble') and 'TCN' not in args.model and 'FSNet' not 
     args.ensemble = True
 else:
     args.ensemble = False
+
+if args.model in ['TinyTimeMixer']:
+    if args.seq_len not in [512, 1024, 1536] or args.pred_len not in [96, 192, 336, 720]:
+        print('Either context length (seq_len) or forecast horizon (pred_len) is not supported by ibm-research/ttm-research-r2.\n' \
+        'Switch to default: context is 512, forecast is 96.')
+        args.seq_len = 512
+        args.pred_len = 96
+    if args.seq_len == 512 and args.pred_len == 96:
+        args.revision = 'main'
+    else:
+        args.revision = '{context}-{horizon}-ft-r2'.format(context=args.seq_len, horizon=args.pred_len)
+    args.pretrained_model_name = 'ibm-research/ttm-research-r2'
+    print(f'Context length: {args.seq_len}, forecast horizon: {args.pred_len}, version: {args.revision}')
+
 
 import platform
 

@@ -16,7 +16,7 @@ itr=1
 freq=10min
 train_ratio=0.5
 test_ratio=0.45
-batch_size=16
+batch_size=64
 data=Weather
 
 concept_dim=200

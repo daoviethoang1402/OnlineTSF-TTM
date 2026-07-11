@@ -76,6 +76,13 @@ parser.add_argument('--leakage', action='store_true', default=False)
 parser.add_argument('--debug', action='store_true', default=False)
 parser.add_argument('--pretrain', action='store_true', default=False)
 parser.add_argument('--freeze', action='store_true', default=False)
+parser.add_argument('--no_finetune', action='store_true', default=False,
+                    help="""TTM-only ablation flag. Decoder+head fine-tune during
+                    pretraining either way; this flag controls whether that
+                    fine-tuning continues into val/online. If set, decoder+head
+                    are permanently frozen before val/online, so PROCEED adapters
+                    must handle concept drift on their own. If unset (default),
+                    decoder+head keep fine-tuning through val/online too.""")
 
 # Proceed
 parser.add_argument('--act', type=str, default='sigmoid', help='activation')
@@ -362,6 +369,8 @@ if args.online_method:
             flag += '_share_enc'
         if args.wo_clip:
             flag += '_noclip'
+        if args.no_finetune:
+            flag += '_nofinetune'
 else:
     flag = args.border_type if args.border_type else args.data
 

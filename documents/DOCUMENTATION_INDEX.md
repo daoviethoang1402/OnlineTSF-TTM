@@ -40,9 +40,9 @@ integrated later and adds its own freezing policy on top of the generic strategy
 generic backbone/adapter freezing alternation, then read these for what TTM changes/adds:
 
 - **[TinyTimeMixer_INTEGRATION.md](TinyTimeMixer_INTEGRATION.md)** — original integration notes (partially outdated; see `../CHANGES.md` for the current state).
-- **[TTM_FREEZE_FLAGS_CLARIFICATION.md](TTM_FREEZE_FLAGS_CLARIFICATION.md)** — what `--freeze` vs `--no_finetune` each do for TTM, why they're independent axes, and why `--normalization RevIN` should not be combined with TTM (it already normalizes internally).
-- **[../CHANGES.md](../CHANGES.md)** — full change history for the TTM+PROCEED integration, including the `--no_finetune` flag and the `ForecastModel` hook-forwarding bug fix.
-- **Best for**: Anyone running `--model TinyTimeMixer`, or deciding between `--freeze` and `--no_finetune`.
+- **[TTM_FREEZE_FLAGS_CLARIFICATION.md](TTM_FREEZE_FLAGS_CLARIFICATION.md)** — what `--freeze` vs `--freeze_online` each do for TTM, why they're independent axes, and why `--normalization RevIN` should not be combined with TTM (it already normalizes internally).
+- **[../CHANGES.md](../CHANGES.md)** — full change history for the TTM+PROCEED integration, including the `--freeze_online` flag and the `ForecastModel` hook-forwarding bug fix.
+- **Best for**: Anyone running `--model TinyTimeMixer`, or deciding between `--freeze` and `--freeze_online`.
 
 ---
 
@@ -91,7 +91,7 @@ ARCHITECTURE_DIAGRAM.txt
 
 TTM_FREEZE_FLAGS_CLARIFICATION.md
 ├── What --freeze does (3 effects, generic to any backbone)
-├── What --no_finetune does (TTM-only, val/online cutoff)
+├── What --freeze_online does (TTM-only, val/online cutoff)
 ├── Side-by-side comparison table
 ├── --normalization RevIN: don't combine it with TTM (redundant internal scaler)
 └── FAQ
@@ -156,7 +156,7 @@ Guarantees labels are only available after forecast horizon.
 **Run an experiment (2 min)**
 → Read: QUICK_REFERENCE.md → Section "Running the Pipeline"
 
-**Decide between `--freeze` and `--no_finetune` for TTM (5 min)**
+**Decide between `--freeze` and `--freeze_online` for TTM (5 min)**
 → Read: TTM_FREEZE_FLAGS_CLARIFICATION.md → Full document (it's short)
 → OR: ../CHANGES.md → §6 for the code-level diff
 
@@ -334,8 +334,8 @@ A: Validation: adapting to validation data. Online: same process on test data. B
 **Q: How do I increase adaptation sensitivity?**
 A: Increase `--concept_dim` (more detailed drift detection) or decrease `--bottleneck_dim` (more direct mapping).
 
-**Q: For TTM, what's the difference between `--freeze` and `--no_finetune`?**
-A: `--freeze` is generic (any backbone) and lifelong — if set, decoder/head never fine-tune, not even during pretraining. `--no_finetune` is TTM-only — decoder/head always fine-tune during pretraining, but this flag locks them frozen before val/online instead of letting that fine-tuning continue. See TTM_FREEZE_FLAGS_CLARIFICATION.md for the full breakdown.
+**Q: For TTM, what's the difference between `--freeze` and `--freeze_online`?**
+A: `--freeze` is generic (any backbone) and lifelong — if set, decoder/head never fine-tune, not even during pretraining. `--freeze_online` is TTM-only — decoder/head always fine-tune during pretraining, but this flag locks them frozen before val/online instead of letting that fine-tuning continue. See TTM_FREEZE_FLAGS_CLARIFICATION.md for the full breakdown.
 
 ---
 

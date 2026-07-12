@@ -1,13 +1,13 @@
-# TTM Freeze Flags: `--freeze` vs `--no_finetune`
+# TTM Freeze Flags: `--freeze` vs `--freeze_online`
 
 **Scope**: TinyTimeMixer (TTM) backbone only, branch `no-finetune`.
 **Related**: [PHASES_AND_FREEZING_CLARIFICATION.md](PHASES_AND_FREEZING_CLARIFICATION.md) (generic PROCEED+PatchTST freezing — written before TTM was integrated; TTM's backbone-always-frozen policy and these two flags are additional, TTM-specific layers on top of that generic strategy). See also the root [../CHANGES.md](../CHANGES.md) for the full TTM integration history.
 
 ---
 
-## Question: What does `--freeze` do, and is it the same as `--no_finetune`?
+## Question: What does `--freeze` do, and is it the same as `--freeze_online`?
 
-### ✅ Answer: They are two independent axes. `--freeze` is generic and lifelong; `--no_finetune` is TTM-only and only affects the online phase.
+### ✅ Answer: They are two independent axes. `--freeze` is generic and lifelong; `--freeze_online` is TTM-only and only affects the online phase.
 
 ## What `--freeze` does
 
@@ -31,28 +31,28 @@
 | PROCEED adapters | Trained | Trained |
 | `more_bias` term | Yes | No |
 
-## What `--no_finetune` does
+## What `--freeze_online` does
 
-`--no_finetune` (`run.py`, `models/TinyTimeMixer.py`) is TTM-only and orthogonal to `--freeze`. It assumes decoder+head **do** fine-tune during pretraining (same as approach 1) and only asks: should that fine-tuning carry over into val/online, or stop there?
+`--freeze_online` (`run.py`, `models/TinyTimeMixer.py`) is TTM-only and orthogonal to `--freeze`. It assumes decoder+head **do** fine-tune during pretraining (same as approach 1) and only asks: should that fine-tuning carry over into val/online, or stop there?
 
-| | `--no_finetune` unset (default) | `--no_finetune` set |
+| | `--freeze_online` unset (default) | `--freeze_online` set |
 |---|---|---|
 | Pretraining (phase 1) | Decoder+head fine-tune | Decoder+head fine-tune |
 | Val/online (phase 2) | Decoder+head **keep fine-tuning** (via the existing recent/current-batch alternation) | Decoder+head **permanently frozen** — PROCEED adapters must handle drift alone |
 
-Implementation: `Model.__init__` stores `self._no_finetune`; `freeze_head()` (called once at the top of `Exp_Proceed.update_valid()`) is a no-op unless `self._no_finetune` is `True`, in which case it locks decoder+head off via `requires_grad_(False)` and sets `_head_frozen_for_online = True` so later `requires_grad_(True)` calls in the alternation loop no longer restore them.
+Implementation: `Model.__init__` stores `self._freeze_online`; `freeze_head()` (called once at the top of `Exp_Proceed.update_valid()`) is a no-op unless `self._freeze_online` is `True`, in which case it locks decoder+head off via `requires_grad_(False)` and sets `_head_frozen_for_online = True` so later `requires_grad_(True)` calls in the alternation loop no longer restore them.
 
 ## Side-by-side
 
-| | `--freeze` | `--no_finetune` |
+| | `--freeze` | `--freeze_online` |
 |---|---|---|
 | Scope | Generic — any backbone PROCEED wraps | TTM-specific only |
 | Side effects | Also flips `more_bias` and `Down_Up`'s `freeze_weight` everywhere | None — only touches TTM decoder+head trainability |
 | Pretraining (phase 1) | If set, decoder+head **never** fine-tune | Decoder+head **always** fine-tune, regardless |
 | Val/online (phase 2) | Already frozen the whole time (if set) | Fine-tuned in phase 1, then **locked frozen** before phase 2 |
-| Meaningful when combined? | — | Only when `--freeze` is unset — if `--freeze` is set, decoder/head are already frozen everywhere and `--no_finetune` has nothing left to do |
+| Meaningful when combined? | — | Only when `--freeze` is unset — if `--freeze` is set, decoder/head are already frozen everywhere and `--freeze_online` has nothing left to do |
 
-So: `--freeze` asks *"should TTM ever be fine-tuned, from the very start?"* `--no_finetune` assumes yes during pretraining, and only asks *"should that fine-tuning carry over into the online phase, or stop there?"*
+So: `--freeze` asks *"should TTM ever be fine-tuned, from the very start?"* `--freeze_online` assumes yes during pretraining, and only asks *"should that fine-tuning carry over into the online phase, or stop there?"*
 
 ---
 
@@ -73,7 +73,7 @@ are reached via `hasattr(...)` checks in `adapter/proceed.py` and `exp/exp_proce
 `--normalization RevIN` *were* used, `exp_main.py` would wrap the TTM `Model` in `ForecastModel`
 *before* `Proceed` wraps it, and — before a fix — `ForecastModel` didn't forward these hooks, so
 `hasattr` silently evaluated to `False` and none of the freeze logic above ran at all (this is
-how the `--no_finetune` bug was first discovered: identical MSE/MAE regardless of the flag).
+how the `--freeze_online` bug was first discovered: identical MSE/MAE regardless of the flag).
 `ForecastModel` now forwards `post_proceed_init`/`freeze_head`/`requires_grad_` to
 `self.backbone` (see `models/normalization.py`, and the root [../CHANGES.md](../CHANGES.md) §6
 for the full writeup) — kept in place not because TTM needs it, but so **future foundation
@@ -85,17 +85,17 @@ before this fix does not reflect the freeze policy described in this document.
 
 ## FAQ
 
-**Q: If I just want approach 2 (adapter-only, nothing about TTM ever trains), do I need `--no_finetune` too?**
-A: No. `--freeze` alone already keeps decoder+head frozen for the entire pipeline. `--no_finetune` only matters for approach 1 (`--freeze` unset).
+**Q: If I just want approach 2 (adapter-only, nothing about TTM ever trains), do I need `--freeze_online` too?**
+A: No. `--freeze` alone already keeps decoder+head frozen for the entire pipeline. `--freeze_online` only matters for approach 1 (`--freeze` unset).
 
-**Q: Can I combine `--freeze` and `--no_finetune`?**
-A: You can pass both, but `--no_finetune` becomes a no-op — decoder+head are already frozen for all phases once `--freeze` is set.
+**Q: Can I combine `--freeze` and `--freeze_online`?**
+A: You can pass both, but `--freeze_online` becomes a no-op — decoder+head are already frozen for all phases once `--freeze` is set.
 
-**Q: Does `--no_finetune` affect the PROCEED adapters (mlp1/mlp2/generator) or `more_bias`?**
+**Q: Does `--freeze_online` affect the PROCEED adapters (mlp1/mlp2/generator) or `more_bias`?**
 A: No — it only touches `tinytimemixer.decoder` and `tinytimemixer.head` trainability. Everything else (adapter weights, bias term, backbone-always-frozen policy) is unchanged.
 
 **Q: Is the TTM backbone ever trainable under either flag?**
-A: No. `self.tinytimemixer.backbone.requires_grad_(False)` is set unconditionally in `Model.__init__` and re-enforced in `post_proceed_init()` and the `requires_grad_()` override, independent of both `--freeze` and `--no_finetune`.
+A: No. `self.tinytimemixer.backbone.requires_grad_(False)` is set unconditionally in `Model.__init__` and re-enforced in `post_proceed_init()` and the `requires_grad_()` override, independent of both `--freeze` and `--freeze_online`.
 
 **Q: Should I pass `--normalization RevIN` when running TTM?**
 A: No — TTM already normalizes internally via `tinytimemixer.backbone.scaler`. Adding `ForecastModel`/RevIN on top is redundant for TTM specifically; that wrapper is kept working correctly for future foundation models that don't have their own internal normalization.

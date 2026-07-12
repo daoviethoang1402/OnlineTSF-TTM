@@ -76,7 +76,7 @@ parser.add_argument('--leakage', action='store_true', default=False)
 parser.add_argument('--debug', action='store_true', default=False)
 parser.add_argument('--pretrain', action='store_true', default=False)
 parser.add_argument('--freeze', action='store_true', default=False)
-parser.add_argument('--no_finetune', action='store_true', default=False,
+parser.add_argument('--freeze_online', action='store_true', default=False,
                     help="""TTM-only ablation flag. Decoder+head fine-tune during
                     pretraining either way; this flag controls whether that
                     fine-tuning continues into val/online. If set, decoder+head
@@ -369,8 +369,8 @@ if args.online_method:
             flag += '_share_enc'
         if args.wo_clip:
             flag += '_noclip'
-        if args.no_finetune:
-            flag += '_nofinetune'
+        if args.freeze_online:
+            flag += '_freezeonline'
 else:
     flag = args.border_type if args.border_type else args.data
 

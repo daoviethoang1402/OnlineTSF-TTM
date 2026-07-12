@@ -30,11 +30,11 @@ class Model(nn.Module):
         (approach 1: full TTM fine-tuning), frozen when args.freeze=True (approach 2:
         adapter-only training).
       - Whether decoder+head stay trainable once pretraining ends and val/online begins
-        depends on args.no_finetune (see freeze_head()):
-          * args.no_finetune=True:  decoder+head are permanently frozen before val/online
+        depends on args.freeze_online (see freeze_head()):
+          * args.freeze_online=True:  decoder+head are permanently frozen before val/online
             — PROCEED adapters must handle drift on their own, with no help from further
             TTM fine-tuning.
-          * args.no_finetune=False (default): decoder+head keep fine-tuning through
+          * args.freeze_online=False (default): decoder+head keep fine-tuning through
             val/online as well (subject to the same freeze/unfreeze alternation Exp_Proceed
             applies to the rest of the backbone).
 
@@ -76,9 +76,9 @@ class Model(nn.Module):
         # When args.freeze=True (approach 2), freeze decoder+head as well so only
         # PROCEED adapters are trained. When False (approach 1), decoder+head stay
         # trainable for pretraining, and remain trainable into val/online unless
-        # args.no_finetune permanently freezes them via freeze_head().
+        # args.freeze_online permanently freezes them via freeze_head().
         self._ttm_head_trainable = not getattr(configs, 'freeze', False)
-        self._no_finetune = getattr(configs, 'no_finetune', False)
+        self._freeze_online = getattr(configs, 'freeze_online', False)
         self._head_frozen_for_online = False
         if not self._ttm_head_trainable:
             self.tinytimemixer.decoder.requires_grad_(False)
@@ -98,15 +98,15 @@ class Model(nn.Module):
         self.tinytimemixer.backbone.requires_grad_(False)
 
     def freeze_head(self):
-        """Permanently freeze decoder+head before val/online, iff args.no_finetune.
+        """Permanently freeze decoder+head before val/online, iff args.freeze_online.
 
         Called by Exp_Proceed.update_valid() once pretraining is done. When
-        args.no_finetune=True, decoder+head are locked off here so PROCEED adapters
+        args.freeze_online=True, decoder+head are locked off here so PROCEED adapters
         must handle drift alone; requires_grad_(True) will no longer re-enable them.
-        When args.no_finetune=False, this is a no-op — decoder+head keep fine-tuning
+        When args.freeze_online=False, this is a no-op — decoder+head keep fine-tuning
         through val/online, same as during pretraining.
         """
-        if not self._no_finetune:
+        if not self._freeze_online:
             return
         self.tinytimemixer.decoder.requires_grad_(False)
         self.tinytimemixer.head.requires_grad_(False)

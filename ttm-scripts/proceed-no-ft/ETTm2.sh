@@ -17,7 +17,7 @@ freq=15min
 train_ratio=0.5
 test_ratio=0.45
 batch_size=64
-data=ETTm1
+data=ETTm2
 
 concept_dim=200
 bottleneck_dim=32
@@ -28,7 +28,7 @@ for pred_len in 96 192 336 720
 do
     filename=logs/proceed/TTM'_'Proceed'_'$data'_'$seq_len'_'$pred_len.log
 
-    python run.py --model TinyTimeMixer --decoder_mode common_channel \
+    python run.py --model TinyTimeMixer --freeze_online --decoder_mode common_channel \
     --dataset $data --seq_len $seq_len --pred_len $pred_len --freq h --train_ratio $train_ratio --test_ratio $test_ratio \
     --online_method Proceed --concept_dim $concept_dim --bottleneck_dim $bottleneck_dim --batch_size $batch_size \
     --online_learning_rate $online_learning_rate --itr $itr >> $filename 2>&1

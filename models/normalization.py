@@ -15,6 +15,31 @@ class ForecastModel(nn.Module):
         else:
             raise NotImplementedError
 
+    def post_proceed_init(self):
+        """Forward to self.backbone so Proceed's hasattr(...) check reaches it.
+
+        Without this, Proceed sees a ForecastModel (this wrapper) instead of the
+        actual backbone and never calls the backbone's own post_proceed_init(),
+        silently skipping any freeze re-enforcement the backbone relies on.
+        """
+        if hasattr(self.backbone, 'post_proceed_init'):
+            self.backbone.post_proceed_init()
+
+    def freeze_head(self):
+        """Forward to self.backbone; see post_proceed_init() for why this is needed."""
+        if hasattr(self.backbone, 'freeze_head'):
+            self.backbone.freeze_head()
+
+    def requires_grad_(self, requires_grad: bool = True):
+        """Delegate to self.backbone.requires_grad_ instead of the default
+        nn.Module.requires_grad_, which would blanket-set every parameter and
+        bypass any backbone-specific freeze policy (e.g. TTM's overridden
+        requires_grad_ that keeps its backbone permanently frozen).
+        """
+        self.backbone.requires_grad_(requires_grad)
+        self.processor.requires_grad_(requires_grad)
+        return self
+
     def forward(self, x, *args, process=True, **kwargs):
         if process:
             x = self.processor(x, mode='norm')

@@ -187,7 +187,7 @@ collide with existing ones:
 
 ```python
 if args.freeze_online:
-    flag += '_freezeonline'
+    flag += '_freezeonl'
 ```
 
 #### `models/TinyTimeMixer.py`

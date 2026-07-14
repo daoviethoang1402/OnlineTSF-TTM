@@ -370,7 +370,7 @@ if args.online_method:
         if args.wo_clip:
             flag += '_noclip'
         if args.freeze_online:
-            flag += '_freezeonline'
+            flag += '_freezeonl'
 else:
     flag = args.border_type if args.border_type else args.data
 

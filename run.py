@@ -371,6 +371,9 @@ if args.online_method:
             flag += '_noclip'
         if args.freeze_online:
             flag += '_freezeonl'
+
+    if args.online_learning_rate is not None:
+        flag += f'_olr{args.online_learning_rate}'
 else:
     flag = args.border_type if args.border_type else args.data
 

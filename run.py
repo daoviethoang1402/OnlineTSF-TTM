@@ -97,6 +97,22 @@ parser.add_argument('--joint_update_valid', action='store_true', default=False)
 parser.add_argument('--comment', type=str, default='')
 parser.add_argument('--wo_clip', action='store_true', default=False)
 
+# MoE-SSF (--online_method ProceedMoE). See adapter/module/moe.py.
+parser.add_argument('--num_experts', type=int, default=2,
+                    help='K real SSF experts (ignored if --expert_bottleneck_dims is set). A +1 identity/fallback slot is always added.')
+parser.add_argument('--expert_bottleneck_dims', type=str, default='',
+                    help="comma-separated per-expert bottleneck_dim, e.g. '8,32'; empty = geometrically span [max(4,bottleneck_dim//8) .. bottleneck_dim]")
+parser.add_argument('--router_hidden_dim', type=int, default=0,
+                    help='router MLP hidden size; 0 = linear router (drift -> K+1 logits)')
+parser.add_argument('--router_noisy_std', type=float, default=0.0,
+                    help='std of Gaussian noise added to router logits during training (exploration; 0 = off)')
+parser.add_argument('--moe_lb_coef', type=float, default=0.01,
+                    help='load-balancing (importance CV^2) loss coefficient, over the K real experts only')
+parser.add_argument('--moe_z_coef', type=float, default=1e-3,
+                    help='router z-loss coefficient')
+parser.add_argument('--moe_log_every', type=int, default=0,
+                    help='print router usage (mean gates / argmax fractions / abstention) every N router calls; 0 = only the end-of-phase summary')
+
 # OneNet
 parser.add_argument('--learning_rate_w', type=float, default=0.001, help='optimizer learning rate')
 parser.add_argument('--learning_rate_bias', type=float, default=0.001, help='optimizer learning rate')

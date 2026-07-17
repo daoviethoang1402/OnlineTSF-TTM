@@ -205,3 +205,40 @@ use.
 | ETTh2 1536_96 | 0.224 | 0.226 | **beats** (−0.8%) |
 | ETTh2 512_720 | 0.505 | 0.475 | loses (+6.3%) — hold-out |
 | ETTh2 1536_720 | 0.499 (0.493 @ lr=1e-6) | 0.502 | **beats** (−0.2% to −1.8%) |
+
+---
+
+## reg_combo2 full-grid generalization (ALL 6 datasets, `results.xlsx` sheet `no-ft`)
+
+Fixed reg_combo2 (`cdim64, bneck8, ema0.9, lr3e-6`) run on the full grid
+(6 datasets × seq {512,1024,1536} × pred {96,192,336,720}), PROCEED vs Naive
+(= zero-shot TTM). This is the true out-of-tuning-set generalization test
+(only ETTh1/ETTh2 corners were used to pick the recipe).
+
+**Verdict: as a fixed recipe it is net slightly NEGATIVE globally — wins small,
+loses big.**
+
+- Global MSE across 72 cells: **32 wins avg −1.98% vs 40 losses avg +2.64%**
+  (more losses, and larger). Worst loss +13.5% (ETTh1 1536_720), best win
+  −11.5% (ETTm2). Asymmetric, unfavorable risk profile.
+- **Two regimes:**
+  - **ETT = adaptation matters (high variance):** pred=96 wins cleanly
+    (ETTh1/ETTm1/ETTm2 all 3/3); pred 192–336 drift negative; pred=720 bimodal
+    — ETTh1/ETTm1 lose ~+7/+4%, but **ETTm2 720 wins −6%**. Not monotone in
+    horizon.
+  - **Weather / Jiaolong = adaptation ~irrelevant (low variance):** every cell
+    within ±2%. Weather slightly worse (Naive edges it), Jiaolong slightly
+    better. Weak drift → best achievable ≈ zero-shot.
+- Long-horizon ETT losses are partly self-inflicted by reg_combo2's *reduced*
+  capacity (the capacity diagnostic showed pred=720 ETT wants full capacity) —
+  a horizon-aware-capacity fixed recipe would already recover some.
+
+**Implication (reinforces MoE-SSF, adds a design priority):** the failure is
+"adaptation hurts in a large identifiable subset, and a fixed recipe can't turn
+itself off there." The #1 MoE requirement is **abstention** — a router able to
+select the near-identity fallback where drift is weak/adaptation harmful
+(Weather, several long-horizon cells), converting the big-loss tails into ties.
+Open question gating the architecture: do drift statistics separate win-cells
+from loss-cells? If yes → feed-forward router can learn to abstain; if no →
+need an online performance guard (SOLID-style sample gate) instead. See
+[[moe-ssf-approach]].

@@ -125,11 +125,25 @@ the loop. Slots are `[expert_0 .. expert_{K-1}, FALLBACK]`.
 | cell | config | MSE | vs zero-shot | vs reg_combo2 (fixed) |
 |---|---|---|---|---|
 | ETTh1 512_96 | experts 8,32; lb=0.01; lr3e-6 | 0.4725 | −1.8% (beats 0.481) | +1.4% (loses to 0.466) |
+| ETTh1 512_96 | experts 8,32; **lb=0**; lr3e-6 | 0.4668 | −2.9% | ~tie (0.466) |
+| ETTh1 1536_720 | experts 8,32; lb=0.01; lr3e-6 | 0.8135 | +4.7% (loses 0.777) | beats fixed @3e-6 (0.845/0.824) |
 
-Read: at 512_96 a *single* capacity (bneck8) is optimal, so the mixture dilutes
-and the lb loss (forcing ~50/50) likely blocks concentration — hence the
-lb_coef diagnostic. The informative cells (multi-capacity / hold-out /
-abstention) are still pending (1536_720 OOM'd on a contended GPU).
+**Key negative finding (router inert).** In all of the above the router gates
+stayed **near-uniform** (~1/3 each) and **fallback was almost never the argmax**
+(≈0.004). The gains are from implicit ensembling + constant fallback shrinkage,
+**not learned routing**, and abstention did not emerge — even on 1536_720 where
+zero-shot beats adaptation. Root cause: the router shared the adapter's tiny
+online LR (3e-6) and stayed frozen near its uniform init.
+
+**Fix implemented: decoupled router LR.** The router now lives in its own
+optimizer param group (`--router_learning_rate`, default 1e-3; experts/adapter
+stay at `--online_learning_rate`). The group is tagged `is_router` so the
+online-LR loops (run.py, Exp_Proceed.online) skip it, and `Exp_ProceedMoE.online`
+re-asserts it per phase. Diagnostic: `ttm-scripts/moe-ssf/ETTh1_router_lr.sh`
+sweeps router LR ∈ {1e-3, 1e-2} on both key cells (lb=0). Watch whether a faster
+router concentrates and starts using FALLBACK on 1536_720 — the decisive test of
+whether a learned feed-forward router is viable, else fall back to explicit
+abstention supervision (see Future work #3).
 
 ## What to look for in the smoke run
 
@@ -163,7 +177,14 @@ performance guard (see Future work).
   MoE-aware; unused by default but would break under `flag_basic=True`.
 - **Optimizer**: all router/expert params are `requires_grad=True` at build, so
   `_select_optimizer` includes them (same as base Proceed); freeze toggles only
-  gate grad flow afterward.
+  gate grad flow afterward. `Exp_ProceedMoE._select_optimizer` builds TWO groups
+  (adapter + router-tagged `is_router`) so the router can use its own LR; the
+  online-LR loops in run.py / Exp_Proceed.online skip `is_router` groups.
+- **`remove_frozen_param_from_optim`** (exp_basic.py) only reindexes
+  `param_groups[0]` — it assumes a single group. It runs only on an optimizer-
+  checkpoint reload ValueError (not hit by these `--pretrain`-free frozen runs),
+  but if MoE is ever combined with optimizer-checkpoint loading, that helper must
+  be made router-group-aware.
 
 ## Future work (in priority order)
 

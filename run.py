@@ -112,6 +112,8 @@ parser.add_argument('--moe_z_coef', type=float, default=1e-3,
                     help='router z-loss coefficient')
 parser.add_argument('--moe_log_every', type=int, default=0,
                     help='print router usage (mean gates / argmax fractions / abstention) every N router calls; 0 = only the end-of-phase summary')
+parser.add_argument('--router_learning_rate', type=float, default=1e-3,
+                    help='separate (usually higher) online LR for the MoE router; experts/adapter stay at --online_learning_rate')
 
 # OneNet
 parser.add_argument('--learning_rate_w', type=float, default=0.001, help='optimizer learning rate')
@@ -504,6 +506,9 @@ if __name__ == '__main__':
 
         if args.online_learning_rate is not None and not isinstance(exp, Exp_SOLID):
             for j in range(len(exp.model_optim.param_groups)):
+                # MoE-SSF: the router keeps its own (higher) LR — see Exp_ProceedMoE.
+                if exp.model_optim.param_groups[j].get('is_router'):
+                    continue
                 exp.model_optim.param_groups[j]['lr'] = args.online_learning_rate
             print('Adjust learning rate of model_optim to', exp.model_optim.param_groups[0]['lr'])
 

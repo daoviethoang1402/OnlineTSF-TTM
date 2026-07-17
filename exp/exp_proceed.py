@@ -21,6 +21,9 @@ class Exp_Proceed(Exp_Online):
         if phase == 'val' and self.args.val_online_lr and self.args.online_learning_rate is not None:
             lr = self.model_optim.param_groups[0]['lr']
             for j in range(len(self.model_optim.param_groups)):
+                # MoE-SSF: leave the router's own (higher) LR untouched.
+                if self.model_optim.param_groups[j].get('is_router'):
+                    continue
                 self.model_optim.param_groups[j]['lr'] = self.args.online_learning_rate
         self.model_optim.zero_grad()
         self._model.freeze_adapter(True)
@@ -28,6 +31,8 @@ class Exp_Proceed(Exp_Online):
         self._model.freeze_adapter(False)
         if phase == 'val' and self.args.val_online_lr:
             for j in range(len(self.model_optim.param_groups)):
+                if self.model_optim.param_groups[j].get('is_router'):
+                    continue
                 self.model_optim.param_groups[j]['lr'] = lr
         return ret
 

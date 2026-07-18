@@ -61,7 +61,7 @@ run_variant () {
 
 # "dataset  freq  batch_size  preds..."
 configs=(
-    "Exchange d 64 96 720"
+    "Exchange d 64 96 192 336"   # 720 dropped: only ~7.6k rows -> ~5% val split can't fit seq512+pred720
     "wind     h 64 96 720"
     # optional heavy tier (hundreds of channels -> slow / lower headroom expected):
     # "Traffic h 8 96 720"

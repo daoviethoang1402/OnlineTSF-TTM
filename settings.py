@@ -151,12 +151,12 @@ pretrain_lr_online_dict = {
     'TinyTimeMixer': {
         'ETTh1': 0.0001, 'ETTh2': 0.0001, 'ETTm1': 0.0001, 'ETTm2': 0.0001,
         'Weather': 0.0001, 'ECL': 0.0001, 'Traffic': 0.0001,
-        'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001,
+        'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001, 'wind': 0.0001,
     },
     'TinyTimeMixer_RevIN': {
         'ETTh1': 0.0001, 'ETTh2': 0.0001, 'ETTm1': 0.0001, 'ETTm2': 0.0001,
         'Weather': 0.0001, 'ECL': 0.0001, 'Traffic': 0.0001,
-        'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001,
+        'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001, 'wind': 0.0001,
     },
     'TCN': {'ECL': 0.003, 'ETTh2': 0.003, 'ETTm1': 0.001, 'Weather': 0.001, 'Traffic': 0.003},
     'TCN_RevIN': {'ECL': 0.003, 'ETTh2': 0.001, 'ETTm1': 0.0001, 'Weather': 0.001, 'Traffic': 0.003},
@@ -176,7 +176,7 @@ pretrain_lr_dict = {
     'TinyTimeMixer': {
         'ETTh1': 0.0001, 'ETTh2': 0.0001, 'ETTm1': 0.0001, 'ETTm2': 0.0001,
         'Weather': 0.0001, 'ECL': 0.0001, 'Traffic': 0.0001,
-        'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001,
+        'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001, 'wind': 0.0001,
     },
     'PatchTST': {'ETTh2': 0.0001, 'ETTm1': 0.0001, 'Traffic': 0.0001, 'Weather': 0.0001, 'ECL': 0.0001},
     'iTransformer': {'ETTh2': 0.0001, 'ETTm1': 0.0001, 'Traffic': 0.001, 'Weather': 0.0001, 'ECL': 0.0005},

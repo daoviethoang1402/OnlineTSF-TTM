@@ -46,6 +46,27 @@ generic backbone/adapter freezing alternation, then read these for what TTM chan
 
 ---
 
+### 🔬 TTM Research & Findings (frozen PROCEED vs concept drift)
+
+The docs above explain the *system*; these record the *research* — what we tried,
+what we learned, and where the project stands.
+
+- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** — **start here.** Full research arc:
+  goal → hyperparameter tuning → the ~0.9% headroom ceiling and the behavioral
+  dataset pivot → MoE-SSF (parked) → the Exchange breakthrough (frozen PROCEED
+  beats few-shot by −26% on out-of-corpus non-stationary data) → catastrophic-
+  forgetting evidence → the crystallized thesis → open questions.
+- **[PROCEED_TTM_HYPERPARAM_NOTES.md](PROCEED_TTM_HYPERPARAM_NOTES.md)** — per-lever
+  effects (online LR dominant ~3e-6, ema inert, capacity cell-dependent),
+  reg_combo2 recipe, capacity diagnostic, and the reg_combo2 full-grid results.
+- **[MOE_SSF_DESIGN.md](MOE_SSF_DESIGN.md)** — the mixture-of-scale/shift-experts
+  exploration (branch `moe-ssf`): design, router-abstention findings, why it was
+  parked.
+- **Best for**: Understanding *why* the project is now aimed at out-of-corpus
+  non-stationary datasets, and what evidence supports the frozen-adapter thesis.
+
+---
+
 ## Document Quick Links
 
 ```

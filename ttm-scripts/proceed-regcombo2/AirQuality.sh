@@ -40,7 +40,7 @@ do
 
     echo "[regcombo2] data=$data seq=$seq_len pred=$pred_len cdim=$concept_dim bneck=$bottleneck_dim ema=$ema lr=$online_learning_rate"
 
-    python run.py --model TinyTimeMixer --freeze_online --decoder_mode common_channel \
+    python run.py --model TinyTimeMixer --freeze_online --decoder_mode mix_channel \
     --dataset $data --seq_len $seq_len --pred_len $pred_len --freq $freq --train_ratio $train_ratio --test_ratio $test_ratio \
     --online_method Proceed --concept_dim $concept_dim --bottleneck_dim $bottleneck_dim --ema $ema --batch_size $batch_size \
     --online_learning_rate $online_learning_rate --itr $itr >> $filename 2>&1

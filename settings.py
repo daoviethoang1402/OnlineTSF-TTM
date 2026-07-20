@@ -28,9 +28,9 @@ data_settings = {
     'Illness': {'data': 'illness.csv', 'T':'OT', 'M':[7,7], 'prefetch_batch_size': 128},
     'Jiaolong_DSMS': {'data': 'Jiaolong_DSMS.csv', 'T': 'Label', 'M': [24, 24], 'prefetch_batch_size': 128},
     # Out-of-corpus / non-stationary datasets for the headroom study (preprocessed to date+features).
-    'BeijingAQ': {'data': 'PRSA_Data_Aotizhongxin_20130301-20170228.csv', 'T': 'PM2.5', 'M': [11, 11], 'prefetch_batch_size': 64},
+    'BeijingAQ': {'data': 'PRSA_Data_Aotizhongxin_20130301-20170228.csv', 'T': 'PM2.5', 'M': [10, 10], 'prefetch_batch_size': 64},
     'Energy': {'data': 'energydata_complete.csv', 'T': 'Appliances', 'M': [26, 26], 'prefetch_batch_size': 64},
-    'AirQuality': {'data': 'air_quality.csv', 'T': 'CO(GT)', 'M': [13, 13], 'prefetch_batch_size': 64},
+    'AirQuality': {'data': 'air_quality.csv', 'T': 'CO(GT)', 'M': [12, 12], 'prefetch_batch_size': 64},
 }
 
 def get_borders(args):

@@ -104,35 +104,53 @@ static-SSF control** is still needed to rule out "just more params."
 > few-shot (up to -26%)**. The frozen constraint isn't a memory compromise — it's
 > the mechanism. Motivation and result are the same story.
 
+## 6b. OOD headroom results (run-2) — see `OOD_HEADROOM_RESULTS.md`
+
+Ran fewshot vs reduced (reg_combo2) vs full capacity on the new datasets
+(means over contexts). Tally: **1 strong + 1 modest + 1 mixed + 2 null.**
+- **Exchange — strong (−35% MSE @336)**, driven by few-shot collapsing at long
+  context (fewshot 1.65 @seq1536 vs PROCEED 0.78). reduced ≈ full. The anchor.
+- **AirQuality — modest (−4% @336).** reduced ≈ full.
+- **Energy — mixed:** full wins MSE (−6%) but loses MAE (+3%); reduced loses
+  both. First dataset where capacity matters (full ≫ reduced). Not a clean win.
+- **BeijingAQ, wind — null** (~tie, slightly worse at 720; few-shot at ceiling).
+
+**Refined selection rule:** headroom ⟺ **few-shot behaviorally collapses**
+(representational-ceiling frame), NOT "is it OOD". **Capacity:** reduced ≈ full
+except Energy → default **reduced**. **MoE-SSF: still not justified** — single
+adapter suffices where headroom exists (reduced≈full), and a mixture can't break
+the representational ceiling where it doesn't; revive only if a collapse-prone
+dataset shows single-full underfitting AND mixture > full (not yet seen).
+
 ## 7. Current state (branch `with-tsfm`)
 
-- **Datasets registered** (`settings.py`): BeijingAQ, Energy, AirQuality
-  (+ existing Exchange, wind, Jiaolong). reg_combo2 scripts written for all
-  (`ttm-scripts/proceed-regcombo2/`).
+- **Datasets registered + run** (`settings.py`): Exchange, wind, BeijingAQ,
+  AirQuality, Energy (results above). Jiaolong existing. reg_combo2 scripts in
+  `ttm-scripts/proceed-regcombo2/`.
 - On disk, unrun: exchange@usa (2nd financial), THU-Concept-Drift (controlled
-  synthetic — the causal study), Weather 2024-26 (a "recency != drift" control,
-  expected ~0%).
-- **Selection rule:** out-of-corpus + non-stationary, verified with a cheap
-  behavioral probe (few-shot vs PROCEED-frozen); promote only cells clearing
-  ~few%.
+  synthetic), Weather 2024-26 ("recency != drift" control, expected ~0%).
+- **Data cleaning:** `ttm-scripts/probe/clean_datasets.py` (missing values /
+  sentinels; RAIN dropped from BeijingAQ, NMHC(GT) from AirQuality).
+- **Decoder:** use `common_channel` (robust under drift; matches all working
+  runs); `mix_channel` only as an optional ablation.
 - **Probe scripts:** `ttm-scripts/probe/` (Phase 0 headroom, Phase 1 forgetting,
   `analyze_probe.py`).
 - **Branches:** `with-tsfm` = main line; `moe-ssf` = parked MoE exploration.
 
 ## 8. Open questions / next steps
 
-1. **Confirm & expand headroom** — reg_combo2 + few-shot on Exchange (full grid)
-   and the new datasets; does -26% replicate beyond one dataset?
+1. **More collapse-prone (financial-type) datasets** — Exchange is the only
+   strong win; add exchange@usa, crypto. Screen by "few-shot fails on both
+   metrics", not by "OOD".
 2. **Load-bearing control** — static-SSF (capacity-matched, no drift conditioning)
-   vs PROCEED-frozen on Exchange 336: is the win the *drift mechanism* or just
-   *capacity*?
-3. **Full- vs reduced-capacity ablation** on Exchange (long-horizon OOD is where
-   ETT hinted full might help).
+   vs PROCEED-frozen on Exchange 336: drift mechanism or just capacity?
+   (reduced≈full already hints it's not capacity.)
+3. **Decide the headline metric** (MSE vs MAE) — matters for Energy's placement.
 4. **Seeds** — Exchange 336 has notable run-to-run variance; pin it.
 5. **THU controlled synthetic study** — show the advantage scales with drift
    severity (causal proof, dataset-independent).
-6. **Contrast set** — keep ETT/Weather (+ Weather-2024-26) as the "no headroom"
-   baseline that makes the OOD result meaningful.
+6. **Contrast set** — ETT/Weather + BeijingAQ/wind (now shown null) as the
+   "no headroom" baseline that makes the Exchange result meaningful.
 
 ---
 

@@ -56,6 +56,10 @@ what we learned, and where the project stands.
   dataset pivot → MoE-SSF (parked) → the Exchange breakthrough (frozen PROCEED
   beats few-shot by −26% on out-of-corpus non-stationary data) → catastrophic-
   forgetting evidence → the crystallized thesis → open questions.
+- **[OOD_HEADROOM_RESULTS.md](OOD_HEADROOM_RESULTS.md)** — results on the
+  out-of-corpus datasets (Exchange −35%, AirQuality modest, Energy mixed,
+  BeijingAQ/wind null): the fewshot-vs-reduced-vs-full tables, the "headroom ⟺
+  few-shot collapses" rule, capacity findings, and why MoE-SSF stays parked.
 - **[PROCEED_TTM_HYPERPARAM_NOTES.md](PROCEED_TTM_HYPERPARAM_NOTES.md)** — per-lever
   effects (online LR dominant ~3e-6, ema inert, capacity cell-dependent),
   reg_combo2 recipe, capacity diagnostic, and the reg_combo2 full-grid results.

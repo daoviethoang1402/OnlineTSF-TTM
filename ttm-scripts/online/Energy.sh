@@ -9,11 +9,11 @@ fi
 learning_rate=0.0001
 online_learning_rate=0.0001
 itr=1
-freq=h
+freq=10min
 train_ratio=0.5
 test_ratio=0.45
 batch_size=64
-data=ETTh2
+data=Energy
 
 decoder_mode=common_channel
 

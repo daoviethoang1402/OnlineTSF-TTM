@@ -13,13 +13,13 @@ freq=h
 train_ratio=0.5
 test_ratio=0.45
 batch_size=64
-data=ETTh2
+data=AirQuality
 
 decoder_mode=common_channel
 
 for seq_len in 512 1024 1536
 do
-for pred_len in 96 192 336 720
+for pred_len in 96 192 336
 do
     filename=logs/online/TTM'_'Online'_'$data'_'$seq_len'_'$pred_len.log
 

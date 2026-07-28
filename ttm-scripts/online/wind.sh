@@ -13,7 +13,7 @@ freq=h
 train_ratio=0.5
 test_ratio=0.45
 batch_size=64
-data=ETTh2
+data=wind
 
 decoder_mode=common_channel
 

@@ -27,6 +27,10 @@ data_settings = {
     'exchange_rate': {'data': 'exchange_rate.csv', 'T':'OT', 'M':[8,8], 'prefetch_batch_size': 128},
     'Illness': {'data': 'illness.csv', 'T':'OT', 'M':[7,7], 'prefetch_batch_size': 128},
     'Jiaolong_DSMS': {'data': 'Jiaolong_DSMS.csv', 'T': 'Label', 'M': [24, 24], 'prefetch_batch_size': 128},
+    # Out-of-corpus / non-stationary datasets for the headroom study (preprocessed to date+features).
+    'BeijingAQ': {'data': 'PRSA_Data_Aotizhongxin_20130301-20170228.csv', 'T': 'PM2.5', 'M': [10, 10], 'prefetch_batch_size': 64},
+    'Energy': {'data': 'energydata_complete.csv', 'T': 'Appliances', 'M': [26, 26], 'prefetch_batch_size': 64},
+    'AirQuality': {'data': 'air_quality.csv', 'T': 'CO(GT)', 'M': [12, 12], 'prefetch_batch_size': 64},
 }
 
 def get_borders(args):
@@ -151,12 +155,14 @@ pretrain_lr_online_dict = {
     'TinyTimeMixer': {
         'ETTh1': 0.0001, 'ETTh2': 0.0001, 'ETTm1': 0.0001, 'ETTm2': 0.0001,
         'Weather': 0.0001, 'ECL': 0.0001, 'Traffic': 0.0001,
-        'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001,
+        'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001, 'wind': 0.0001,
+        'BeijingAQ': 0.0001, 'Energy': 0.0001, 'AirQuality': 0.0001,
     },
     'TinyTimeMixer_RevIN': {
         'ETTh1': 0.0001, 'ETTh2': 0.0001, 'ETTm1': 0.0001, 'ETTm2': 0.0001,
         'Weather': 0.0001, 'ECL': 0.0001, 'Traffic': 0.0001,
-        'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001,
+        'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001, 'wind': 0.0001,
+        'BeijingAQ': 0.0001, 'Energy': 0.0001, 'AirQuality': 0.0001,
     },
     'TCN': {'ECL': 0.003, 'ETTh2': 0.003, 'ETTm1': 0.001, 'Weather': 0.001, 'Traffic': 0.003},
     'TCN_RevIN': {'ECL': 0.003, 'ETTh2': 0.001, 'ETTm1': 0.0001, 'Weather': 0.001, 'Traffic': 0.003},
@@ -176,7 +182,8 @@ pretrain_lr_dict = {
     'TinyTimeMixer': {
         'ETTh1': 0.0001, 'ETTh2': 0.0001, 'ETTm1': 0.0001, 'ETTm2': 0.0001,
         'Weather': 0.0001, 'ECL': 0.0001, 'Traffic': 0.0001,
-        'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001,
+        'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001, 'wind': 0.0001,
+        'BeijingAQ': 0.0001, 'Energy': 0.0001, 'AirQuality': 0.0001,
     },
     'PatchTST': {'ETTh2': 0.0001, 'ETTm1': 0.0001, 'Traffic': 0.0001, 'Weather': 0.0001, 'ECL': 0.0001},
     'iTransformer': {'ETTh2': 0.0001, 'ETTm1': 0.0001, 'Traffic': 0.001, 'Weather': 0.0001, 'ECL': 0.0005},

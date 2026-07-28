@@ -18,7 +18,7 @@ def get_alldata(filename='electricity.csv', root_path='./'):
     if filename.endswith('.csv'):
         df = pd.read_csv(path)
         if filename.startswith('wind'):
-            df['date'] = pd.date_range(start='2000-01-01', periods=len(df), freq='H')
+            df['date'] = pd.date_range(start='2000-01-01', periods=len(df), freq='h')  # 'H' removed in pandas>=2.2
     else:
         if filename.startswith('nyc'):
             import h5py

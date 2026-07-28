@@ -114,6 +114,21 @@ parser.add_argument('--moe_log_every', type=int, default=0,
                     help='print router usage (mean gates / argmax fractions / abstention) every N router calls; 0 = only the end-of-phase summary')
 parser.add_argument('--router_learning_rate', type=float, default=1e-3,
                     help='separate (usually higher) online LR for the MoE router; experts/adapter stay at --online_learning_rate')
+parser.add_argument('--router_use_norm', type=str_to_bool, default=True,
+                    help='feed the pre-clip drift magnitude ||drift|| to the router as an extra input (abstention signal)')
+# Online abstention guard (adapt-vs-identity). See exp/exp_proceed_moe.py.
+parser.add_argument('--use_guard', action='store_true', default=False,
+                    help='enable the online performance guard: shrink the mixture toward identity (few-shot) where adaptation has recently been hurting (no leakage; uses revealed windows only)')
+parser.add_argument('--guard_tau', type=float, default=0.1,
+                    help='guard temperature; alpha=sigmoid(((E_id-E_full)/E_id)/tau). Lower = sharper abstention. Tuned on the dev set.')
+parser.add_argument('--guard_ema', type=float, default=0.95,
+                    help='EMA decay for the guard error estimates E_full / E_id')
+parser.add_argument('--guard_eps', type=float, default=1e-6,
+                    help='numerical epsilon in the guard relative-improvement denominator')
+parser.add_argument('--guard_alpha_min', type=float, default=0.0,
+                    help='lower clamp on the guard gate alpha (0 = allow full abstention to few-shot)')
+parser.add_argument('--guard_alpha_max', type=float, default=1.0,
+                    help='upper clamp on the guard gate alpha (1 = allow full adaptation)')
 
 # OneNet
 parser.add_argument('--learning_rate_w', type=float, default=0.001, help='optimizer learning rate')

@@ -178,12 +178,14 @@ class MoEAdaptGenerator(nn.Module):
                  shared: bool = True, need_bias: bool = True, mid_dim: int = None,
                  num_experts: int = 2, expert_bottleneck_dims=None,
                  router_hidden_dim: int = 0, router_noisy_std: float = 0.0,
-                 lb_coef: float = 0.01, z_coef: float = 1e-3, router_log_every: int = 0):
+                 lb_coef: float = 0.01, z_coef: float = 1e-3, router_log_every: int = 0,
+                 router_use_norm: bool = True):
         super().__init__()
         self.dim_name_dict = collections.defaultdict(list)
         self.bottlenecks = nn.ModuleDict()
         self.lb_coef = lb_coef
         self.z_coef = z_coef
+        self.router_use_norm = router_use_norm
         self.register_buffer('aux_loss', torch.zeros(()), persistent=False)
         self.last_gates = None
 
@@ -206,7 +208,12 @@ class MoEAdaptGenerator(nn.Module):
         dims = self._resolve_expert_dims(expert_bottleneck_dims, mid_dim, num_experts)
         self.expert_bottleneck_dims = dims
         self.num_experts = len(dims)
-        self.router = ExpertRouter(concept_features, self.num_experts,
+        # The router conditions on the drift direction plus, optionally, the
+        # pre-clip drift magnitude ||drift|| (a strong abstention signal: weak
+        # drift -> little to adapt). The clip() applied to the experts' input
+        # discards that magnitude, so we feed it to the router explicitly.
+        router_in_dim = concept_features + (1 if router_use_norm else 0)
+        self.router = ExpertRouter(router_in_dim, self.num_experts,
                                    hidden_dim=router_hidden_dim, noisy_std=router_noisy_std,
                                    log_every=router_log_every)
 
@@ -235,8 +242,11 @@ class MoEAdaptGenerator(nn.Module):
 
     def forward(self, x, need_clip=False):
         if need_clip:
-            x, _ = clip(x)
-        expert_gates, gates, logits = self.router(x)
+            x, x_norm = clip(x)          # x_norm = ||drift|| BEFORE clipping, shape (B, 1)
+        else:
+            x_norm = x.norm(dim=-1, keepdim=True)
+        router_in = torch.cat([x, x_norm], dim=-1) if self.router_use_norm else x
+        expert_gates, gates, logits = self.router(router_in)
         coefs = {k: bn(x, expert_gates) for k, bn in self.bottlenecks.items()}
         self.aux_loss = (self.lb_coef * importance_loss(expert_gates)
                          + self.z_coef * router_z_loss(logits))

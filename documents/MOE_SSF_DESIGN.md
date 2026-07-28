@@ -1,6 +1,109 @@
 # MoE-SSF: Mixture of Scale/Shift Experts for PROCEED + TTM
 
-Branch: `moe-ssf` (off `with-tsfm`). Status: **MVP scaffold — not yet validated on a real run.**
+Branch: `moe-ssf` (off `with-tsfm`).
+Status: **v2 — capacity experts + `‖drift‖` router + online abstention guard.**
+The v1 scaffold (soft mixture + learned fallback slot) is documented below as
+historical record; the sections from "## v2" down to "## Why" describe the
+current design. v1's key negative result — *a gradient-trained softmax router
+never selects the identity/fallback slot* — is what motivated v2's guard.
+
+---
+
+## v2: Capacity experts + online abstention guard (CURRENT DESIGN)
+
+### The core problem v1 exposed
+
+The MoE must solve **two separable jobs**, and only one of them is
+gradient-learnable:
+
+1. **Which capacity to use when adapting** — learnable. Given the drift, a router
+   can learn to prefer a low-rank vs high-rank expert (the capacity optimum is
+   cell-dependent per the capacity diagnostic).
+2. **Whether to adapt at all (abstention)** — **NOT** gradient-learnable here. On
+   any window you fit, *more* adaptation lowers the training MSE, so no phase of
+   training ever rewards "don't adapt." Abstention only pays off out-of-sample
+   where the drift signal is spurious. A softmax router trained by MSE therefore
+   never selects the identity slot — exactly what v1 observed (fallback argmax
+   ≈ 0.000; loss-cells recovered 0/10).
+
+v1 asked one softmax to do both and it could only do #1 (weakly). v2 splits them:
+the **router** does #1 (gradient-learned), an **online guard** does #2
+(non-gradient, from revealed performance).
+
+### Components
+
+```
+              x_current, recent_batch
+                       │
+             drift = concept(x) − concept(recent)         (mlp1/mlp2, as in PROCEED)
+                       │
+        ┌──────────────┴───────────────┐
+        │                              [‖drift‖]                (pre-clip magnitude:
+        ▼                               │                        strong abstention signal)
+   clip(drift)                    ExpertRouter( [clip(drift), ‖drift‖] ) → softmax(K+1)
+        │                               │  gates over {e0..e_{K-1}, FALLBACK}
+        ▼                               ▼
+ MoEBottleneck = { Bottleneck(bd=8), Bottleneck(bd=32), Bottleneck(bd=64) }   # K=3 experts
+        │
+  mixture = Σ_k gates[:,k] · expert_k(drift)              # heterogeneous-rank capacity mixture
+        │
+        ▼
+  applied_adaptation = α_guard · mixture                 # α∈[0,1] from the ONLINE GUARD
+        │                                                #   α=0 ⇒ identity (few-shot backbone)
+        ▼                                                #   α=1 ⇒ full mixture
+   Down_Up.assign_adaptation(applied)                    # scale/shift around frozen layers
+```
+
+- **Experts** (`MoEBottleneck`, K=3, bottleneck_dims `{8,32,64}`): span the
+  characterized capacity range (short horizon ~8, long horizon ~32–64). All
+  zero-init to identity, so the mixture *starts* at few-shot.
+- **Router** (`ExpertRouter`): input is `[clip(drift), ‖drift‖]` (dim
+  `concept_dim+1`). The clip throws away drift magnitude; we feed `‖drift‖`
+  (the pre-clip norm) back in explicitly because weak drift ⇒ little to adapt ⇒
+  a natural abstention cue. Decoupled router LR (`--router_learning_rate`, 1e-3).
+- **Online abstention guard** (`Exp_ProceedMoE._guard_measure`): the load-bearing
+  new piece. Per recent (already-revealed) window it measures
+  `err_full` (α=1) vs `err_identity` (few-shot backbone), keeps EMAs `E_full`,
+  `E_id`, and sets
+  `α = sigmoid( ((E_id − E_full) / E_id) / τ )`.
+  The **relative** (scale-free) improvement makes a single `τ` transfer across
+  datasets with very different MSE magnitudes. α scales the whole mixture toward
+  identity where adaptation has recently been hurting → the "loses big" tail
+  becomes ties; α≈1 where adaptation clearly helps (Exchange) → the big wins are
+  kept. Uses only revealed windows ⇒ **no leakage**. Warm-started during the
+  validation-update phase (EMAs are not reset between val and test).
+
+### Why this is not cherry-picking
+
+The guard's `τ`, `guard_ema`, and `concept_dim` are tuned **once on a fixed dev
+set** (ETTh1/h2 corners + Exchange 336 + a Weather cell) and **frozen** across the
+full held-out grid. The per-step, per-dataset α is computed *online from data*,
+never hand-set. Abstention emerges from a uniform control law, not from
+per-cell switches chosen after seeing test results.
+
+### New CLI flags (on top of v1's)
+
+| flag | default | meaning |
+|---|---|---|
+| `--use_guard` | off | enable the online abstention guard |
+| `--guard_tau` | 0.1 | guard temperature; lower = sharper abstention (dev-tuned) |
+| `--guard_ema` | 0.95 | EMA decay for `E_full` / `E_id` |
+| `--guard_alpha_min/max` | 0 / 1 | clamps on α (0 = allow full abstention) |
+| `--router_use_norm` | True | feed `‖drift‖` to the router |
+
+`--expert_bottleneck_dims 8,32,64` sets the K=3 experts. Drop `--use_guard` for
+the pure-MoE (v1-style) ablation. Roster run scripts:
+`ttm-scripts/moe-ssf/<Dataset>.sh` (all datasets incl. `Jiaolong.sh`).
+
+### Expected behavior (the test the guard must pass)
+
+| regime | example | expected α | outcome |
+|---|---|---|---|
+| few-shot collapses | Exchange 336 | ≈ 1 | keep the big win (−26–35%) |
+| adaptation helps a little | ETT short horizon | ~0.5–1 | small win |
+| weak drift / adaptation hurts | Weather, wind, Jiaolong, ETT long | → 0 | **tie** few-shot (no big loss) |
+
+---
 
 ## Why (motivation from the hyperparameter phase)
 

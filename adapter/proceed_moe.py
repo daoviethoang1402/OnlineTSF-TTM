@@ -8,6 +8,7 @@ application of adaptations — is inherited unchanged.
 
 See adapter/module/moe.py and documents/MOE_SSF_DESIGN.md for the design.
 """
+import torch
 import torch.nn as nn
 
 from adapter.proceed import Proceed
@@ -34,11 +35,45 @@ class ProceedMoE(Proceed):
             lb_coef=getattr(args, 'moe_lb_coef', 0.01),
             z_coef=getattr(args, 'moe_z_coef', 1e-3),
             router_log_every=getattr(args, 'moe_log_every', 0),
+            router_use_norm=getattr(args, 'router_use_norm', True),
         )
+        # ---- online abstention guard state ---------------------------------- #
+        # `alpha` in [0, 1] scales the whole mixture adaptation toward identity
+        # (alpha=0 == few-shot backbone, alpha=1 == full mixture). It is set by
+        # Exp_ProceedMoE's online performance guard, NOT by gradient. When the
+        # guard is off, alpha stays 1 and the model is a pure soft MoE.
+        # `flag_identity` forces a pure-backbone (few-shot) forward, used by the
+        # guard to measure the no-adaptation error on already-revealed windows.
+        self.use_guard = getattr(args, 'use_guard', False)
+        self.register_buffer('alpha', torch.ones(()), persistent=False)
+        self.flag_identity = False
         print(f'[ProceedMoE] experts={self.generator.num_experts} '
               f'bottleneck_dims={self.generator.expert_bottleneck_dims} '
               f'(+1 fallback slot), router_hidden={getattr(args, "router_hidden_dim", 0)}, '
-              f'lb_coef={self.generator.lb_coef}, z_coef={self.generator.z_coef}')
+              f'router_use_norm={self.generator.router_use_norm}, '
+              f'lb_coef={self.generator.lb_coef}, z_coef={self.generator.z_coef}, '
+              f'use_guard={self.use_guard}')
+
+    def forward(self, *x):
+        # Identity path: assign no adaptation to every wrapped layer -> the
+        # frozen backbone alone (few-shot). Used only by the guard's measurement.
+        if self.flag_identity:
+            for out_dim, names in self.generator.dim_name_dict.items():
+                for name in names:
+                    self.backbone.get_submodule(name).assign_adaptation(None)
+            return self.backbone(*x)
+        adaptations = self.generate_adaptation(x[0])
+        a = self.alpha if self.use_guard else None
+        for out_dim, adaptation in adaptations.items():
+            for i in range(len(adaptation)):
+                name = self.generator.dim_name_dict[out_dim][i]
+                adp = adaptation[i]
+                # Scale the mixture toward identity by the guard gate. adp==0 is
+                # already identity, so alpha linearly interpolates few-shot<->full.
+                if a is not None and adp is not None:
+                    adp = adp * a
+                self.backbone.get_submodule(name).assign_adaptation(adp)
+        return self.backbone(*x)
 
     # ---- freezing -------------------------------------------------------- #
     # Proceed's freeze_adapter/freeze_bias reach into `bottleneck.weights` /

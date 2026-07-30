@@ -16,7 +16,8 @@ data=ETTh2
 concept_dim=200
 bottleneck_dim=32
 ema=0
-online_learning_rate=0.000003
+learning_rate=0.0001
+online_learning_rate=0.0001
 
 decoder_mode=common_channel
 

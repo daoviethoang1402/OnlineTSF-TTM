@@ -2,8 +2,8 @@ if [ ! -d "./logs" ]; then
     mkdir ./logs
 fi
 
-if [ ! -d "./logs/proceed-full-noft" ]; then
-    mkdir ./logs/proceed-full-noft
+if [ ! -d "./logs/full-noft" ]; then
+    mkdir ./logs/full-noft
 fi
 
 itr=1
@@ -24,7 +24,7 @@ for seq_len in 512 1024 1536
 do
 for pred_len in 96 192 336
 do
-    filename=logs/proceed-full-noft/TTM'_'Proceed'_'$data'_'$seq_len'_'$pred_len'_'full-noft.log
+    filename=logs/full-noft/TTM'_'Proceed'_'$data'_'$seq_len'_'$pred_len'_'full-noft.log
 
     echo "[full-noft] data=$data seq=$seq_len pred=$pred_len cdim=$concept_dim bneck=$bottleneck_dim ema=$ema lr=$online_learning_rate"
 

@@ -152,6 +152,33 @@ dataset shows single-full underfitting AND mixture > full (not yet seen).
 6. **Contrast set** — ETT/Weather + BeijingAQ/wind (now shown null) as the
    "no headroom" baseline that makes the Exchange result meaningful.
 
+## 9. Continuation — MoE-SSF built & falsified → per-dataset capacity selection
+
+The "MoE-SSF (parked)" idea in §4 was then **fully built and decisively falsified**,
+and the project settled on a simpler final method. Details in the new docs:
+
+- **`MOE_SSF_GUARD_NEGATIVE_RESULT.md`** — MoE-SSF (heterogeneous experts +
+  `‖drift‖` router) plus an **online abstention guard** were built on branch
+  `moe-ssf`. Controlled diagnostic: the **guard is a net negative** (degrades a
+  good single adapter +10–12% on Exchange/ETTh2), and the **mixture only matches,
+  never beats, a single adapter**; `concept_dim=128` was a bad default. The guard's
+  trailing signal is *anti-correlated* with adaptation benefit on growing-drift
+  data. → **Abandoned; back to a single frozen adapter.**
+- **`CAPACITY_SELECTION_STUDY.md`** — per-dataset capacity + lr chosen on
+  **validation corners only** (176 val runs), extended to the full grid (interiors
+  held out). Key results: the **lr horizon-rule is falsified — lr tracks *drift*,
+  not horizon** (1e-6 everywhere, 3e-6 for Exchange); capacity is a wash except
+  **full for Exchange/ETTh2 (and marginally Energy)**, driven by the hardest
+  corner. Final config + scripts in `ttm-scripts/capacity-select/`.
+- **`PROCEED_ONLINE_LR_MECHANISM.md`** — why lr behaves this way: in the frozen
+  regime `online_learning_rate` moves **only the generator output bias
+  `biases[-1]`** (a drift-independent offset); the drift→scale/shift mapping is
+  frozen/amortized. Hence near-inert on stationary data, drift-tracking on Exchange.
+
+**Current final method:** single frozen PROCEED, `--freeze_online`, `ema=0`,
+per-dataset capacity (full for Exchange/ETTh2/Energy, reduced for the other 8),
+lr = 3e-6 for Exchange else 1e-6. No MoE, no guard.
+
 ---
 
 **One-line version:** we started trying to tune/architect a better adapter,
@@ -159,4 +186,6 @@ discovered the real problem was that standard benchmarks give a strong TSFM
 nothing to adapt to, pivoted to behaviorally-selected out-of-corpus non-stationary
 data, and found frozen PROCEED delivers large gains (-26%) exactly where
 fine-tuning catastrophically forgets — vindicating the frozen design as the
-mechanism, not a compromise.
+mechanism, not a compromise. The MoE/guard elaborations were then built and shown
+*not* to beat that single frozen adapter; the final method is per-dataset
+capacity + drift-based lr, selected on validation.

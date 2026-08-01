@@ -64,10 +64,21 @@ what we learned, and where the project stands.
   effects (online LR dominant ~3e-6, ema inert, capacity cell-dependent),
   reg_combo2 recipe, capacity diagnostic, and the reg_combo2 full-grid results.
 - **[MOE_SSF_DESIGN.md](MOE_SSF_DESIGN.md)** — the mixture-of-scale/shift-experts
-  exploration (branch `moe-ssf`): design, router-abstention findings, why it was
-  parked.
+  design (branch `moe-ssf`).
+- **[MOE_SSF_GUARD_NEGATIVE_RESULT.md](MOE_SSF_GUARD_NEGATIVE_RESULT.md)** — the
+  **outcome**: MoE-SSF + the online abstention guard were built and *falsified*
+  (guard degrades a good adapter; mixture only matches a single one). Why we
+  returned to a single frozen adapter.
+- **[CAPACITY_SELECTION_STUDY.md](CAPACITY_SELECTION_STUDY.md)** — the final method:
+  per-dataset capacity + drift-based lr chosen on **validation corners only**,
+  extended to the full grid. lr-horizon-rule falsified (lr tracks drift); capacity
+  full for Exchange/ETTh2/Energy, reduced elsewhere.
+- **[PROCEED_ONLINE_LR_MECHANISM.md](PROCEED_ONLINE_LR_MECHANISM.md)** — what
+  `online_learning_rate` actually adjusts (only the generator output bias
+  `biases[-1]` in the frozen regime), and why lr is near-inert except on Exchange.
 - **Best for**: Understanding *why* the project is now aimed at out-of-corpus
-  non-stationary datasets, and what evidence supports the frozen-adapter thesis.
+  non-stationary datasets, why the MoE/guard elaborations were dropped, and the
+  final per-dataset capacity + lr selection.
 
 ---
 

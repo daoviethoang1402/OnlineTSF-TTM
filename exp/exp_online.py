@@ -119,7 +119,13 @@ class Exp_Online(Exp_Main):
             H = batch_y.shape[1]
             for i in range(H):
                 loss += criterion(outputs[i, :H-i], batch_y[i, :H-i])
-            if self.args.use_amp:
+            # Under approach-2 (--freeze) the adapter is pure amortized: on steps where
+            # nothing is trainable (e.g. the recent-batch step, which would normally only
+            # move biases[-1], which does not exist when args.freeze=True) the loss has no
+            # grad_fn -> skip the backward/step and treat it as a forward-only pass.
+            if not getattr(loss, 'requires_grad', False):
+                pass
+            elif self.args.use_amp:
                 scaler.scale(loss).backward()
                 for optim in optimizer:
                     scaler.step(optim)

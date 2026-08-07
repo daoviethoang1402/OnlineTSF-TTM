@@ -93,7 +93,12 @@ class Exp_Basic(object):
             optim.zero_grad()
         outputs = self.forward(batch)
         loss = self.train_loss(criterion, batch, outputs)
-        if self.args.use_amp:
+        # Approach-2 (--freeze): on steps where nothing is trainable (e.g. the recent-batch
+        # step, whose only target biases[-1] does not exist when args.freeze=True) the loss
+        # has no grad_fn -> skip the backward/step and treat it as a forward-only pass.
+        if not getattr(loss, 'requires_grad', False):
+            pass
+        elif self.args.use_amp:
             scaler.scale(loss).backward()
             for optim in optimizer:
                 scaler.step(optim)

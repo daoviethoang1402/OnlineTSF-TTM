@@ -53,6 +53,7 @@ def get_borders(args):
 
 hyperparams = {
     'TinyTimeMixer': {},
+    'PatchTST_FM': {},
     'PatchTST': {'e_layers': 3},
     'MTGNN': {},
     'LightCTS': {},
@@ -158,6 +159,12 @@ pretrain_lr_online_dict = {
         'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001, 'wind': 0.0001,
         'BeijingAQ': 0.0001, 'Energy': 0.0001, 'AirQuality': 0.0001,
     },
+    'PatchTST_FM': {
+        'ETTh1': 0.0001, 'ETTh2': 0.0001, 'ETTm1': 0.0001, 'ETTm2': 0.0001,
+        'Weather': 0.0001, 'ECL': 0.0001, 'Traffic': 0.0001,
+        'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001, 'wind': 0.0001,
+        'BeijingAQ': 0.0001, 'Energy': 0.0001, 'AirQuality': 0.0001,
+    },
     'TinyTimeMixer_RevIN': {
         'ETTh1': 0.0001, 'ETTh2': 0.0001, 'ETTm1': 0.0001, 'ETTm2': 0.0001,
         'Weather': 0.0001, 'ECL': 0.0001, 'Traffic': 0.0001,
@@ -180,6 +187,12 @@ pretrain_lr_online_dict = {
 
 pretrain_lr_dict = {
     'TinyTimeMixer': {
+        'ETTh1': 0.0001, 'ETTh2': 0.0001, 'ETTm1': 0.0001, 'ETTm2': 0.0001,
+        'Weather': 0.0001, 'ECL': 0.0001, 'Traffic': 0.0001,
+        'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001, 'wind': 0.0001,
+        'BeijingAQ': 0.0001, 'Energy': 0.0001, 'AirQuality': 0.0001,
+    },
+    'PatchTST_FM': {
         'ETTh1': 0.0001, 'ETTh2': 0.0001, 'ETTm1': 0.0001, 'ETTm2': 0.0001,
         'Weather': 0.0001, 'ECL': 0.0001, 'Traffic': 0.0001,
         'Exchange': 0.0001, 'Illness': 0.0001, 'Jiaolong_DSMS': 0.0001, 'wind': 0.0001,

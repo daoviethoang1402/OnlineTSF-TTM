@@ -37,6 +37,10 @@ parser.add_argument('--wo_test', action='store_true', default=False, help='only 
 parser.add_argument('--wo_valid', action='store_true', default=False, help='only test')
 # parser.add_argument('--model_id', type=str, required=True, default='test', help='model id')
 parser.add_argument('--only_test', action='store_true', default=False)
+parser.add_argument('--zero_shot', action='store_true', default=False,
+                    help='Zero-shot: test the pretrained backbone with NO fine-tuning on the '
+                         'target data. Skips training; use WITHOUT --online_method. Goes through '
+                         'the same Exp_Main.test path as few-shot, so results are directly comparable.')
 parser.add_argument('--do_valid', action='store_true', default=False)
 parser.add_argument('--model', type=str, required=True, default='PatchTST')
 parser.add_argument('--override_hyper', action='store_true', default=True, help='Override hyperparams by setting.py')
@@ -228,6 +232,17 @@ if args.model in ['TinyTimeMixer']:
         args.revision = '{context}-{horizon}-ft-r2'.format(context=args.seq_len, horizon=args.pred_len)
     args.pretrained_model_name = 'ibm-research/ttm-research-r2'
     print(f'Context length: {args.seq_len}, forecast horizon: {args.pred_len}, version: {args.revision}')
+
+if args.model in ['PatchTST_FM']:
+    # PatchTST-FM forecasts by masked reconstruction at a fixed 8192 context, so a
+    # single checkpoint handles ANY (context, horizon) with context + horizon <= 8192.
+    if args.seq_len + args.pred_len > 8192:
+        raise ValueError(f'PatchTST-FM supports context + horizon <= 8192; got '
+                         f'{args.seq_len} + {args.pred_len} = {args.seq_len + args.pred_len}.')
+    args.pretrained_model_name = 'ibm-research/patchtst-fm-r1'
+    args.revision = 'main'
+    print(f'PatchTST-FM | context={args.seq_len}, horizon={args.pred_len} '
+          f'(total {args.seq_len + args.pred_len} <= 8192)')
 
 
 import platform
@@ -480,6 +495,10 @@ if __name__ == '__main__':
                 print('Loading', path)
                 exp.load_checkpoint(path)
                 print('Learning rate of model_optim is', exp.model_optim.param_groups[0]['lr'])
+            elif args.zero_shot:
+                print('>>>>>>> ZERO-SHOT: testing pretrained backbone with NO fine-tuning : {} <<<<<<<'.format(setting))
+                # Skip training entirely; Exp_Main.test() below (called with test=0) evaluates
+                # the in-memory pretrained model, i.e. true zero-shot on the target data.
             else:
                 print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
                 _, train_data, train_loader, vali_data, vali_loader = exp.train(setting, train_data, train_loader,

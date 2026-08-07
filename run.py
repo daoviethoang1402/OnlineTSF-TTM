@@ -41,6 +41,11 @@ parser.add_argument('--zero_shot', action='store_true', default=False,
                     help='Zero-shot: test the pretrained backbone with NO fine-tuning on the '
                          'target data. Skips training; use WITHOUT --online_method. Goes through '
                          'the same Exp_Main.test path as few-shot, so results are directly comparable.')
+parser.add_argument('--concept_mode', type=str, default='dual',
+                    choices=['dual', 'shared', 'current', 'stats'],
+                    help='PROCEED concept-encoder ablation. dual: two encoders, drift=c(X_t)-c(X_t-H) '
+                         '[default]. shared: one shared encoder for both. current: only c(X_t), no drift. '
+                         'stats: data-space per-channel moment featurizer (mean/std/last/trend).')
 parser.add_argument('--do_valid', action='store_true', default=False)
 parser.add_argument('--model', type=str, required=True, default='PatchTST')
 parser.add_argument('--override_hyper', action='store_true', default=True, help='Override hyperparams by setting.py')

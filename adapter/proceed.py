@@ -61,6 +61,12 @@ class Proceed(nn.Module):
         self.flag_update = False
         self.flag_current = False
         self.flag_basic = False
+        # SSF component-decomposition ablation: force disabled components to identity
+        for _m in self.backbone.modules():
+            if isinstance(_m, down_up.Down_Up):
+                _m.ablate_scale = getattr(args, 'ssf_no_scale', False)
+                _m.ablate_input_scale = getattr(args, 'ssf_no_input_scale', False)
+                _m.ablate_shift = getattr(args, 'ssf_no_shift', False)
 
     def _stats(self, x):
         # Data-space per-channel featurizer: [mean, std, last, trend] -> (..., n_stats*C)
@@ -75,10 +81,12 @@ class Proceed(nn.Module):
         return torch.cat([mean, std, last, slope], dim=-1)
 
     def generate_adaptation(self, x):
+        static = getattr(self.args, 'static_ssf', False)  # vanilla/static SSF: zero drift
         if self.concept_mode == 'current':
             # only the current concept c_t, NO drift subtraction (ablation)
             concept = self.mlp1(x).mean(-2)
-            return self.generator(concept, need_clip=not self.args.wo_clip)
+            gen_in = torch.zeros_like(concept) if static else concept
+            return self.generator(gen_in, need_clip=not self.args.wo_clip)
 
         if self.concept_mode == 'stats':
             concept = self._stats(x)
@@ -98,6 +106,8 @@ class Proceed(nn.Module):
             if self.flag_update or self.flag_online_learning and not self.flag_current:
                 self.recent_concept = recent_concept.detach()
         drift = concept - recent_concept
+        if static:
+            drift = torch.zeros_like(drift)
         res = self.generator(drift, need_clip=not self.args.wo_clip)
         return res
 

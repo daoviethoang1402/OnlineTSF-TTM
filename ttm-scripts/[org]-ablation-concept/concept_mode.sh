@@ -23,8 +23,8 @@ MODES=(dual shared current stats)
 # Representative subset. Add ETTh1/ETTm1/ETTm2 to cover the full thesis set.
 DATASETS=(
   "ETTh2|h|96 192 336 720"
-  "Weather|10min|96 192 336 720"
-  "Jiaolong_DSMS|s|96 192 336 720"
+  # "Weather|10min|96 192 336 720"
+  # "Jiaolong_DSMS|s|96 192 336 720"
 )
 
 for spec in "${DATASETS[@]}"; do

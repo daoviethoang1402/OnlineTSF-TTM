@@ -10,8 +10,14 @@ from adapter.module import down_up
 from adapter.module.base import Adaptation
 
 
-def clip(x, max_norm=1):
-    x_norm = torch.norm(x, dim=-1, keepdim=True)
+def clip(x, max_norm=1, eps=1e-8):
+    # sqrt(sum+eps) instead of torch.norm so the norm (and its gradient) stay finite
+    # when x is (near-)zero. Without the eps floor, a zero-norm drift makes
+    # max_norm/x_norm=inf; the clamp then produces a 0*inf=NaN gradient in backward,
+    # which corrupts online fine-tuning. This bites concept_mode='shared', where
+    # drift = E(X_t) - E(X_{t-H}) with a SHARED encoder can be exactly zero on
+    # overlapping online windows. eps is negligible for any non-zero drift.
+    x_norm = torch.sqrt((x * x).sum(dim=-1, keepdim=True) + eps)
     scale = torch.clip(max_norm / x_norm, max=1)
     return x * scale, x_norm
 

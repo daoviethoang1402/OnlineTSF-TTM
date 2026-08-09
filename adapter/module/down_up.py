@@ -60,6 +60,13 @@ class Down_Up(up.Adaptation_Up):
             self.scale2 = adaptation[..., self.out_features:self.out_features + self.in_features] + 1
             if self.flag_adapt_bias:
                 self.shift = adaptation[..., -self.out_features:]
+            # SSF component-decomposition ablation (force disabled parts to identity)
+            if getattr(self, 'ablate_scale', False):
+                self.scale = torch.ones_like(self.scale)
+            if getattr(self, 'ablate_input_scale', False):
+                self.scale2 = torch.ones_like(self.scale2)
+            if getattr(self, 'ablate_shift', False) and self.shift is not None:
+                self.shift = torch.zeros_like(self.shift)
             if self.scale.dim() == 2:
                 self.scale = self.scale.unsqueeze(1)
                 self.scale2 = self.scale2.unsqueeze(1)

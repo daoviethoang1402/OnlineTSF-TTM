@@ -13,12 +13,12 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 OLR=0.0001; EMA=0
 SEQ_LENS=(512 1024 1536)
-CDIMS=(32 64 128)
+CDIMS=(100 150 200)
 BNECKS=(8 16 32)
 DATASETS=(
   "ETTh2|h|96 192 336 720"
-  "Weather|10min|96 192 336 720"
-  "Jiaolong_DSMS|s|96 192 336 720"
+  # "Weather|10min|96 192 336 720"
+  # "Jiaolong_DSMS|s|96 192 336 720"
 )
 
 for spec in "${DATASETS[@]}"; do

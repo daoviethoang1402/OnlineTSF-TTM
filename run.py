@@ -46,6 +46,17 @@ parser.add_argument('--concept_mode', type=str, default='dual',
                     help='PROCEED concept-encoder ablation. dual: two encoders, drift=c(X_t)-c(X_t-H) '
                          '[default]. shared: one shared encoder for both. current: only c(X_t), no drift. '
                          'stats: data-space per-channel moment featurizer (mean/std/last/trend).')
+# --- SSF ablations (reduced-noft) ---
+parser.add_argument('--static_ssf', action='store_true', default=False,
+                    help='Vanilla/static SSF: feed ZERO drift to the generator so it produces a '
+                         'fixed, drift-INDEPENDENT scale/shift (learned in pretraining, static at '
+                         'test). Isolates whether the drift-conditioning hypernetwork matters.')
+parser.add_argument('--ssf_no_scale', action='store_true', default=False,
+                    help='SSF component ablation: disable the output scale (force = 1).')
+parser.add_argument('--ssf_no_input_scale', action='store_true', default=False,
+                    help='SSF component ablation: disable the input scale2 (force = 1).')
+parser.add_argument('--ssf_no_shift', action='store_true', default=False,
+                    help='SSF component ablation: disable the additive shift (force = 0).')
 parser.add_argument('--do_valid', action='store_true', default=False)
 parser.add_argument('--model', type=str, required=True, default='PatchTST')
 parser.add_argument('--override_hyper', action='store_true', default=True, help='Override hyperparams by setting.py')

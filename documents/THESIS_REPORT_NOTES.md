@@ -108,6 +108,18 @@ dominated by the no-headroom majority, hiding the real result. Group instead:
 - **"Low memory" claim** is only honest for the frozen/adapter-only variant (no
   online head fine-tuning). Qualify it, or present the frozen variant that earns it.
 
+## 6b. Mechanism (ablation result — adopt this framing)
+
+The Exchange ablations are in (`documents/SSF_ABLATION_MECHANISM.md`): PROCEED's win
+is a **learned static, per-layer additive SHIFT** re-calibrating the frozen backbone,
+NOT drift tracking. Static SSF (zero drift) is within +0.8% of the drift-conditioned
+adapter; shift-only within +1.3%; the encoder choice within ≤2%; drift/scales earn
+their keep only at the most-drifted corner (1536_336). **Do not claim "tracks drift"**
+— say "a static SSF/shift re-calibration; drift-conditioning adds ≤1% on Exchange."
+The −29% headline and the forgetting story are unchanged; only the mechanism wording
+changes. This also unifies the earlier findings (lr=0 gradient-free, capacity-invariant
+cd16≈cd200 — all the same low-dimensional static shift).
+
 ## 7. Ablation plan (implemented; safe/online-FT first)
 
 New flag `--concept_mode {dual,shared,current,stats}` (see `adapter/proceed.py`):

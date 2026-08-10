@@ -76,6 +76,10 @@ what we learned, and where the project stands.
 - **[PROCEED_ONLINE_LR_MECHANISM.md](PROCEED_ONLINE_LR_MECHANISM.md)** — what
   `online_learning_rate` actually adjusts (only the generator output bias
   `biases[-1]` in the frozen regime), and why lr is near-inert except on Exchange.
+- **[SSF_ABLATION_MECHANISM.md](SSF_ABLATION_MECHANISM.md)** — three ablations
+  (encoder / drift-conditioning / SSF components) show PROCEED's Exchange win is a
+  **learned static per-layer additive SHIFT**, not drift tracking (static SSF +0.8%,
+  shift-only +1.3%, encoder ≤2%). Corrects the "captures drift" mechanism story.
 - **Best for**: Understanding *why* the project is now aimed at out-of-corpus
   non-stationary datasets, why the MoE/guard elaborations were dropped, and the
   final per-dataset capacity + lr selection.

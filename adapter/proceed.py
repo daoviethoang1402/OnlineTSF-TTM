@@ -35,9 +35,16 @@ class Proceed(nn.Module):
         self.more_bias = not args.freeze
         # --- concept-encoder ablation mode (see documents/THESIS_REPORT_NOTES.md) ---
         #   dual    : two encoders, drift = c(X_t) - c(X_{t-H})   [default / original]
-        #   shared  : one shared encoder for both (recent truncated to seq_len)
+        #             historical encoder sees (X_{t-H}, Y_{t-H}) -- input dim seq_len+pred_len
+        #   shared  : one shared encoder for both (recent truncated to LAST seq_len steps,
+        #             which for pred_len >= seq_len is drawn entirely from the Y_{t-H} region)
         #   current : only c(X_t), NO drift subtraction
         #   stats   : data-space per-channel moment featurizer, drift on stats
+        #   strip_y : like dual (separate encoder, same param count/shape as mlp1) but the
+        #             historical encoder sees ONLY X_{t-H} (the true first seq_len steps of the
+        #             recent window) -- NOT Y_{t-H}. Isolates exactly one factor vs dual: does the
+        #             label Y_{t-H} contribute to the historical concept? (shared instead confounds
+        #             this with weight-tying AND a different, H-dependent input slice.)
         self.concept_mode = getattr(args, 'concept_mode', 'dual')
         self.n_stats = 4  # mean, std, last, trend (data-space featurizer)
         concept_features = args.enc_in * self.n_stats if self.concept_mode == 'stats' else args.concept_dim
@@ -50,11 +57,16 @@ class Proceed(nn.Module):
         self.register_buffer('recent_batch', torch.zeros(1, args.seq_len + args.pred_len, args.enc_in), persistent=False)
         if args.ema > 0:
             self.register_buffer('recent_concept', None, persistent=True)
-        if self.concept_mode in ('dual', 'shared', 'current'):
+        if self.concept_mode in ('dual', 'shared', 'current', 'strip_y'):
             self.mlp1 = nn.Sequential(Transpose(-1, -2), nn.Linear(args.seq_len, args.concept_dim), nn.GELU(),
                                       nn.Linear(args.concept_dim, args.concept_dim))
         if self.concept_mode == 'dual':
             self.mlp2 = nn.Sequential(Transpose(-1, -2), nn.Linear(args.seq_len + args.pred_len, args.concept_dim), nn.GELU(),
+                                      nn.Linear(args.concept_dim, args.concept_dim))
+        elif self.concept_mode == 'strip_y':
+            # Same architecture as mlp1 -- separate weights, input dim = seq_len (X_{t-H} only,
+            # no Y_{t-H}), unlike dual's mlp2 whose input dim is seq_len+pred_len.
+            self.mlp2 = nn.Sequential(Transpose(-1, -2), nn.Linear(args.seq_len, args.concept_dim), nn.GELU(),
                                       nn.Linear(args.concept_dim, args.concept_dim))
         self.ema = args.ema
         self.flag_online_learning = False
@@ -96,6 +108,12 @@ class Proceed(nn.Module):
             concept = self.mlp1(x).mean(-2)
             rec_in = self.recent_batch[..., -self.args.seq_len:, :]
             recent_concept = self.mlp1(rec_in).mean(-2).mean(list(range(0, rec_in.dim() - 2)))
+        elif self.concept_mode == 'strip_y':
+            # recent_batch = cat([X_{t-H} (seq_len), Y_{t-H} (pred_len)], dim=-2); take only
+            # the FIRST seq_len steps, i.e. the true X_{t-H} input window (not a tail slice).
+            concept = self.mlp1(x).mean(-2)
+            rec_in = self.recent_batch[..., :self.args.seq_len, :]
+            recent_concept = self.mlp2(rec_in).mean(-2).mean(list(range(0, rec_in.dim() - 2)))
         else:  # 'dual' (default / original)
             concept = self.mlp1(x).mean(-2)
             recent_concept = self.mlp2(self.recent_batch).mean(-2).mean(list(range(0, self.recent_batch.dim() - 2)))

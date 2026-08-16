@@ -37,15 +37,34 @@ def add_ssf_(parent_module: nn.Module, module_name: str, freeze_weight: bool,
 
 class SSF(Adaptation):
     def __init__(self, out_features: int, fan_in_fan_out: bool = False, flag_adapt_bias: bool = True,
-                 merge_weights: bool = True, freeze_weight: bool = True, freeze_bias: bool = True, **kwargs):
+                 merge_weights: bool = True, freeze_weight: bool = True, freeze_bias: bool = True,
+                 learnable: bool = False, **kwargs):
         super().__init__(flag_adapt_bias=flag_adapt_bias, merge_weights=merge_weights,
                          freeze_weight=freeze_weight, freeze_bias=freeze_bias)
         self.out_features = out_features
         self.fan_in_fan_out = fan_in_fan_out
-        self.register_buffer('scale', None, persistent=False)
-        self.register_buffer('shift', None, persistent=False)
+        self.learnable = learnable
+        if learnable:
+            # Canonical learnable SSF (Lian et al., NeurIPS 2022): scale/shift ARE the
+            # adapter's own trainable weights -- identity-initialized, updated end-to-end
+            # by backprop -- not a per-step hypernetwork output assigned externally via
+            # assign_adaptation(). The leading singleton dim matches the shape the rest of
+            # this class already expects for a batch-invariant adaptation (see forward()'s
+            # `scale.shape[0] == 1` fast path below), so _merge/_ssf/forward need no changes.
+            self.scale = nn.Parameter(torch.ones(1, 1, out_features))
+            if flag_adapt_bias:
+                self.shift = nn.Parameter(torch.zeros(1, 1, out_features))
+            else:
+                self.register_buffer('shift', None, persistent=False)
+        else:
+            self.register_buffer('scale', None, persistent=False)
+            self.register_buffer('shift', None, persistent=False)
 
     def assign_adaptation(self, adaptation):
+        if self.learnable:
+            raise RuntimeError(
+                'assign_adaptation() must not be called on a learnable (canonical) SSF module: '
+                'scale/shift are trained parameters here, not a per-step hypernetwork output.')
         if adaptation is None:
             self.scale, self.shift = None, None
         else:

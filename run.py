@@ -42,10 +42,13 @@ parser.add_argument('--zero_shot', action='store_true', default=False,
                          'target data. Skips training; use WITHOUT --online_method. Goes through '
                          'the same Exp_Main.test path as few-shot, so results are directly comparable.')
 parser.add_argument('--concept_mode', type=str, default='dual',
-                    choices=['dual', 'shared', 'current', 'stats'],
+                    choices=['dual', 'shared', 'current', 'stats', 'strip_y'],
                     help='PROCEED concept-encoder ablation. dual: two encoders, drift=c(X_t)-c(X_t-H) '
                          '[default]. shared: one shared encoder for both. current: only c(X_t), no drift. '
-                         'stats: data-space per-channel moment featurizer (mean/std/last/trend).')
+                         'stats: data-space per-channel moment featurizer (mean/std/last/trend). '
+                         'strip_y: like dual (separate encoders) but the historical encoder sees only '
+                         'X_t-H, not (X_t-H, Y_t-H) -- isolates whether the label Y_t-H contributes to '
+                         'the historical concept, holding weight-sharing and the input window fixed.')
 # --- SSF ablations (reduced-noft) ---
 parser.add_argument('--static_ssf', action='store_true', default=False,
                     help='Vanilla/static SSF: feed ZERO drift to the generator so it produces a '

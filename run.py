@@ -106,6 +106,23 @@ parser.add_argument('--freeze_online', action='store_true', default=False,
                     are permanently frozen before val/online, so PROCEED adapters
                     must handle concept drift on their own. If unset (default),
                     decoder+head keep fine-tuning through val/online too.""")
+parser.add_argument('--freeze_bias_after_train', action='store_true', default=False,
+                    help="""Kich ban 2 (fully-frozen backbone, amortized adapter bias).
+                    Normally biases[-1] (the adapter's per-layer static bias, see
+                    Proceed.more_bias) only exists when --freeze is NOT set, because
+                    it is tied to whether the backbone still fine-tunes. This flag
+                    decouples the two: biases[-1] exists and trains through Phase 1
+                    (pretraining) and Phase 2 (update_valid's recent/current
+                    alternation) EVEN WHEN --freeze fully freezes the backbone, then
+                    is frozen for the entire Phase 3 online/test loop -- i.e. no
+                    gradient updates of any kind once training ends. Use together
+                    with --freeze (and usually --freeze_online) to get: whole
+                    foundation model frozen start-to-end, only the drift-conditioned
+                    adapter (including this one static per-layer bias) ever trains,
+                    and online inference costs zero backward passes. Without --freeze
+                    this flag still freezes bias entering Phase 3 (an unusual
+                    combination -- backbone kept fine-tuning, bias frozen -- but not
+                    disallowed).""")
 
 # Proceed
 parser.add_argument('--act', type=str, default='sigmoid', help='activation')

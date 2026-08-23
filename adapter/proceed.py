@@ -32,7 +32,14 @@ class Proceed(nn.Module):
         # are injected (e.g. TTM always keeps its pretrained backbone frozen).
         if hasattr(self.backbone, 'post_proceed_init'):
             self.backbone.post_proceed_init()
-        self.more_bias = not args.freeze
+        # more_bias governs whether biases[-1] (the adapter's per-layer static bias)
+        # exists at all (see AdaptGenerator's need_bias). Normally tied to args.freeze:
+        # approach 1 (freeze=False, backbone fine-tunes) keeps it; approach 2 (freeze=True,
+        # backbone fully frozen) drops it. --freeze_bias_after_train overrides this so
+        # biases[-1] exists AND trains even when the backbone is fully frozen -- see
+        # freeze_bias_after_train's own flag description in run.py for the full policy
+        # (trainable through training phases, frozen for online -- kich ban 2).
+        self.more_bias = (not args.freeze) or getattr(args, 'freeze_bias_after_train', False)
         # --- concept-encoder ablation mode (see documents/THESIS_REPORT_NOTES.md) ---
         #   dual    : two encoders, drift = c(X_t) - c(X_{t-H})   [default / original]
         #             historical encoder sees (X_{t-H}, Y_{t-H}) -- input dim seq_len+pred_len

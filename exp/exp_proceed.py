@@ -65,7 +65,6 @@ class Exp_Proceed(Exp_Online):
                     if isinstance(outputs, (tuple, list)):
                         outputs = outputs[0]
                     predictions.append(outputs.detach().cpu().numpy())
-            self._model.freeze_bias(False)
         else:
             for i, (recent_batch, current_batch) in enumerate(tqdm(valid_loader, mininterval=10)):
                 self._update_online(recent_batch, criterion, model_optim, scaler, flag_current=True)
@@ -77,6 +76,13 @@ class Exp_Proceed(Exp_Online):
                         outputs = outputs[0]
                     predictions.append(outputs.detach().cpu().numpy())
                     self.model.train()
+        # Kich ban 2 (--freeze_bias_after_train): bias[-1] trained through the priming
+        # loop above (recent/current alternation, or joint), then frozen here so it is
+        # NOT updated during the online/test phase that follows ("huan luyen trong giai
+        # doan huan luyen, dong bang sau khi ket thuc"). Approach 1 (flag unset) keeps
+        # the original behavior: unfrozen going into online, so it keeps updating at
+        # online_learning_rate throughout Phase 3, as before.
+        self._model.freeze_bias(getattr(self.args, 'freeze_bias_after_train', False))
         self.model_optim.zero_grad()
         self._model.freeze_adapter(True)
         trainable_params = sum([param.nelement() if param.requires_grad else 0 for param in self._model.parameters()])
